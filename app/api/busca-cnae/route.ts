@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import type { Empresa, BuscaResult } from '@/types/empresa'
 
+export const dynamic = 'force-dynamic'
+
 const BASE = 'https://listacnae.com.br/api/v1'
 
-// Lista CNAE usa POST com body JSON e token no header
+// A API Lista CNAE usa GET com query params JSON-encoded e token no header Authorization.
+// Este handler recebe POST do frontend e faz GET para a API externa.
 export async function POST(req: NextRequest) {
   const token = process.env.LISTA_CNAE_TOKEN
   if (!token) {
@@ -17,44 +20,48 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Body JSON inválido' }, { status: 400 })
   }
 
-  // Validação mínima: ao menos um CNAE deve ser enviado
   const cnaes = body.cnaes as number[] | undefined
   if (!cnaes || cnaes.length === 0) {
     return NextResponse.json({ error: 'Parâmetro cnaes é obrigatório' }, { status: 400 })
   }
 
-  const inicio = (body.inicio as number) ?? 0
-  const quantidade = (body.quantidade as number) ?? 50
+  const inicio = Number(body.inicio ?? 0)
+  const quantidade = Number(body.quantidade ?? 50)
 
-  // Monta payload para a API
-  const payload: Record<string, unknown> = {
-    inicio,
-    quantidade,
-    cnaes,
-    incluir_cnaes_secundarios: body.incluir_cnaes_secundarios ?? false,
-    somente_matrizes: body.somente_matrizes ?? false,
+  // A API usa GET com query params — arrays são passados como JSON strings
+  const params = new URLSearchParams()
+  params.set('inicio', String(inicio))
+  params.set('quantidade', String(quantidade))
+  params.set('cnaes', JSON.stringify(cnaes))
+
+  if (body.estados && Array.isArray(body.estados) && (body.estados as unknown[]).length > 0) {
+    params.set('estados', JSON.stringify(body.estados))
   }
+  if (body.municipios && Array.isArray(body.municipios) && (body.municipios as unknown[]).length > 0) {
+    params.set('municipios', JSON.stringify(body.municipios))
+  }
+  if (body.incluir_cnaes_secundarios) params.set('incluir_cnaes_secundarios', 'true')
+  if (body.somente_matrizes) params.set('somente_matrizes', 'true')
+  if (body.simples_nacional !== undefined) params.set('simples_nacional', String(body.simples_nacional))
+  if (body.mei !== undefined) params.set('mei', String(body.mei))
+  if (body.telefone_obrigatorio) params.set('telefone_obrigatorio', 'true')
+  if (body.email_obrigatorio) params.set('email_obrigatorio', 'true')
+  if (body.capital_social_minimo) params.set('capital_social_minimo', String(body.capital_social_minimo))
+  if (body.capital_social_maximo) params.set('capital_social_maximo', String(body.capital_social_maximo))
+  if (body.data_inicio) params.set('data_inicio', String(body.data_inicio))
+  if (body.data_fim) params.set('data_fim', String(body.data_fim))
+  if (body.termos_busca) params.set('termos_busca', JSON.stringify(body.termos_busca))
+  if (body.cnpjs) params.set('cnpjs', JSON.stringify(body.cnpjs))
 
-  if (body.estados) payload.estados = body.estados
-  if (body.municipios) payload.municipios = body.municipios
-  if (body.simples_nacional !== undefined) payload.simples_nacional = body.simples_nacional
-  if (body.mei !== undefined) payload.mei = body.mei
-  if (body.telefone_obrigatorio) payload.telefone_obrigatorio = body.telefone_obrigatorio
-  if (body.email_obrigatorio) payload.email_obrigatorio = body.email_obrigatorio
-  if (body.capital_social_minimo) payload.capital_social_minimo = body.capital_social_minimo
-  if (body.capital_social_maximo) payload.capital_social_maximo = body.capital_social_maximo
-  if (body.data_inicio) payload.data_inicio = body.data_inicio
-  if (body.data_fim) payload.data_fim = body.data_fim
-  if (body.termos_busca) payload.termos_busca = body.termos_busca
+  const url = `${BASE}/buscar?${params.toString()}`
 
   try {
-    const res = await fetch(`${BASE}/buscar`, {
-      method: 'POST',
+    const res = await fetch(url, {
+      method: 'GET',
       headers: {
-        'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
+        Accept: 'application/json',
       },
-      body: JSON.stringify(payload),
     })
 
     const rawText = await res.text()
@@ -71,11 +78,14 @@ export async function POST(req: NextRequest) {
     try {
       raw = JSON.parse(rawText)
     } catch {
-      return NextResponse.json({ error: 'Resposta da API não é JSON', detail: rawText.substring(0, 500) }, { status: 502 })
+      return NextResponse.json(
+        { error: 'Resposta da API não é JSON', detail: rawText.substring(0, 500) },
+        { status: 502 }
+      )
     }
 
-    // A API retorna array direto ou objeto com propriedade "empresas"/"dados"
-    const lista = Array.isArray(raw)
+    // A API retorna array direto ou objeto com "empresas"/"data"/"dados"
+    const lista: Record<string, unknown>[] = Array.isArray(raw)
       ? raw
       : (raw.empresas ?? raw.dados ?? raw.data ?? [])
 
@@ -86,7 +96,7 @@ export async function POST(req: NextRequest) {
     const paginaAtual = Math.floor(inicio / quantidade) + 1
     const ultimaPagina = Math.ceil(total / quantidade) || 1
 
-    const empresas: Empresa[] = lista.map((e: Record<string, string | number>) => ({
+    const empresas: Empresa[] = lista.map((e) => ({
       cnpj: String(e.cnpj ?? ''),
       razaoSocial: String(e.razao_social ?? ''),
       nomeFantasia: String(e.nome_fantasia || e.razao_social || ''),
@@ -115,7 +125,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// Mantém GET para listar créditos e verificar conectividade
+// GET local: verifica créditos ativos e conectividade com a API
 export async function GET() {
   const token = process.env.LISTA_CNAE_TOKEN
   if (!token) {
@@ -124,7 +134,7 @@ export async function GET() {
 
   try {
     const res = await fetch(`${BASE}/creditosAtivos`, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
     })
     const text = await res.text()
     if (!res.ok) {
