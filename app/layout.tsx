@@ -1,36 +1,36 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 
 import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
-import { Geist, Geist_Mono, Geist as V0_Font_Geist, Geist_Mono as V0_Font_Geist_Mono, Source_Serif_4 as V0_Font_Source_Serif_4 } from 'next/font/google'
+import { Geist_Mono } from 'next/font/google'
 
-// Initialize fonts
-const _geist = V0_Font_Geist({ subsets: ['latin'], weight: ["100","200","300","400","500","600","700","800","900"] })
-const _geistMono = V0_Font_Geist_Mono({ subsets: ['latin'], weight: ["100","200","300","400","500","600","700","800","900"] })
-const _sourceSerif_4 = V0_Font_Source_Serif_4({ subsets: ['latin'], weight: ["200","300","400","500","600","700","800","900"] })
+const geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-mono' })
 
 export const metadata: Metadata = {
   title: 'CNAE OS — Inteligencia Empresarial Brasileira',
-  description: 'Busca e enriquecimento de empresas por CNAE com interface OS interativa. Dados via Lista CNAE e BrasilAPI.',
+  description: 'Busca e enriquecimento de empresas brasileiras por CNAE com interface OS interativa.',
   generator: 'v0.app',
-  icons: {
-    icon: [
-      {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
-      },
-    ],
-    apple: '/apple-icon.png',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'CNAE OS',
   },
+  formatDetection: { telephone: false },
+  openGraph: {
+    title: 'CNAE OS',
+    description: 'Busca empresas brasileiras por CNAE com dados completos da Receita Federal.',
+    type: 'website',
+  },
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: '#fbbf24',
 }
 
 export default function RootLayout({
@@ -39,10 +39,22 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="pt-BR" className="bg-[#d4c4a8]">
-      <body className={`font-mono antialiased`} style={{ background: '#d4c4a8', overflow: 'hidden' }}>
+    <html lang="pt-BR" style={{ background: '#d4c4a8' }}>
+      <head>
+        <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+        <meta name="mobile-web-app-capable" content="yes" />
+      </head>
+      <body
+        className={`${geistMono.variable} font-mono antialiased`}
+        style={{ background: '#d4c4a8', overflow: 'hidden', overscrollBehavior: 'none' }}
+      >
         {children}
         <Analytics />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('/sw.js') }) }`,
+          }}
+        />
       </body>
     </html>
   )

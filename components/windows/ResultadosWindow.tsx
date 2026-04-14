@@ -14,6 +14,168 @@ interface Props {
 
 type SortKey = 'razaoSocial' | 'municipio' | 'uf' | 'porte' | 'capitalSocial' | 'situacao'
 
+// ─── Card view (mobile) ───────────────────────────────────────────────────────
+
+function EmpresaCard({
+  empresa,
+  onAbrirFicha,
+}: {
+  empresa: Empresa
+  onAbrirFicha: (e: Empresa) => void
+}) {
+  const sit = empresa.situacao
+  return (
+    <div
+      style={{
+        background: '#faf8f2',
+        border: '1px solid #e8e0cc',
+        borderRadius: 10,
+        padding: '14px 16px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 8,
+      }}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div
+            style={{
+              fontSize: 13,
+              fontWeight: 700,
+              color: '#2c2416',
+              lineHeight: 1.3,
+              marginBottom: 2,
+              wordBreak: 'break-word',
+            }}
+          >
+            {empresa.nomeFantasia || empresa.razaoSocial}
+          </div>
+          {empresa.nomeFantasia && (
+            <div style={{ fontSize: 11, color: '#7a6a4a', marginBottom: 4 }}>
+              {empresa.razaoSocial}
+            </div>
+          )}
+          <div style={{ fontSize: 11, color: '#a89868', fontFamily: 'monospace' }}>
+            {formatCNPJ(empresa.cnpj)}
+          </div>
+        </div>
+        <span
+          style={{
+            flexShrink: 0,
+            display: 'inline-block',
+            padding: '3px 8px',
+            borderRadius: 99,
+            fontSize: 10,
+            fontWeight: 700,
+            background: situacaoColor(sit) + '22',
+            color: situacaoColor(sit),
+            border: `1px solid ${situacaoColor(sit)}44`,
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {sit}
+        </span>
+      </div>
+
+      <div
+        style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '4px 16px',
+          fontSize: 12,
+          color: '#7a6a4a',
+        }}
+      >
+        <span>
+          <strong style={{ color: '#2c2416' }}>{empresa.uf}</strong> — {empresa.municipio}
+        </span>
+        {empresa.porte && (
+          <span>
+            Porte: <strong style={{ color: '#2c2416' }}>{empresa.porte}</strong>
+          </span>
+        )}
+        {empresa.capitalSocial != null && empresa.capitalSocial > 0 && (
+          <span>
+            Capital: <strong style={{ color: '#2c2416', fontFamily: 'monospace' }}>{formatCapital(empresa.capitalSocial)}</strong>
+          </span>
+        )}
+      </div>
+
+      <button
+        onClick={() => onAbrirFicha(empresa)}
+        style={{
+          alignSelf: 'flex-end',
+          padding: '8px 18px',
+          background: '#fbbf24',
+          border: 'none',
+          borderRadius: 8,
+          fontSize: 13,
+          fontWeight: 700,
+          cursor: 'pointer',
+          color: '#1a1208',
+          fontFamily: 'inherit',
+          minHeight: 40,
+          touchAction: 'manipulation',
+        }}
+      >
+        Ver Ficha
+      </button>
+    </div>
+  )
+}
+
+// ─── Table view (desktop) ─────────────────────────────────────────────────────
+
+function SortIcon({ sortKey, k, sortDir }: { sortKey: SortKey; k: SortKey; sortDir: 'asc' | 'desc' }) {
+  if (sortKey !== k) return <ChevronUp size={12} color="#c8b888" />
+  return sortDir === 'asc'
+    ? <ChevronUp size={12} color="#d97706" />
+    : <ChevronDown size={12} color="#d97706" />
+}
+
+const thStyle: React.CSSProperties = {
+  padding: '8px 12px',
+  fontSize: 11,
+  fontWeight: 700,
+  color: '#7a6a4a',
+  textTransform: 'uppercase',
+  letterSpacing: '0.06em',
+  whiteSpace: 'nowrap',
+  cursor: 'pointer',
+  userSelect: 'none',
+  background: '#ede8da',
+  borderBottom: '2px solid #c8b888',
+}
+
+const tdStyle: React.CSSProperties = {
+  padding: '9px 12px',
+  fontSize: 12,
+  color: '#2c2416',
+  borderBottom: '1px solid #e8e0cc',
+  verticalAlign: 'middle',
+}
+
+function btnStyle(bg: string, color: string): React.CSSProperties {
+  return {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 4,
+    padding: '6px 12px',
+    background: bg,
+    border: '1px solid #c8b888',
+    borderRadius: 6,
+    fontSize: 11,
+    fontWeight: 600,
+    cursor: 'pointer',
+    color,
+    fontFamily: 'inherit',
+    whiteSpace: 'nowrap',
+    minHeight: 34,
+  }
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
+
 export function ResultadosWindow({ resultado, onAbrirFicha, onPaginar, loadingPagina }: Props) {
   const { empresas, total, pagina, ultimaPagina } = resultado
   const [filtro, setFiltro] = useState('')
@@ -75,49 +237,39 @@ export function ResultadosWindow({ resultado, onAbrirFicha, onPaginar, loadingPa
     exportJSON(sorted, `empresas_cnae_${Date.now()}.json`)
   }
 
-  const SortIcon = ({ k }: { k: SortKey }) => {
-    if (sortKey !== k) return <ChevronUp size={12} color="#c8b888" />
-    return sortDir === 'asc'
-      ? <ChevronUp size={12} color="#d97706" />
-      : <ChevronDown size={12} color="#d97706" />
-  }
-
-  const thStyle: React.CSSProperties = {
-    padding: '8px 12px',
-    fontSize: 11,
-    fontWeight: 700,
-    color: '#7a6a4a',
-    textTransform: 'uppercase',
-    letterSpacing: '0.06em',
-    whiteSpace: 'nowrap',
-    cursor: 'pointer',
-    userSelect: 'none',
-    background: '#ede8da',
-    borderBottom: '2px solid #c8b888',
-  }
-
-  const tdStyle: React.CSSProperties = {
-    padding: '9px 12px',
-    fontSize: 12,
-    color: '#2c2416',
-    borderBottom: '1px solid #e8e0cc',
-    verticalAlign: 'middle',
-  }
-
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: '#f5f1e8' }}>
+      <style>{`
+        .res-table-view { display: block; }
+        .res-cards-view { display: none; }
+        @media (max-width: 767px) {
+          .res-table-view { display: none; }
+          .res-cards-view { display: flex; }
+        }
+        .res-row:hover td { background: #fef3c7 !important; }
+      `}</style>
+
       {/* Header */}
-      <div style={{ padding: '14px 20px', borderBottom: '1px solid #ddd0b0', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
-        <FileText size={16} color="#d97706" />
-        <div style={{ flex: 1 }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: '#2c2416' }}>
-            resultados.cnae
-          </span>
-          <span style={{ fontSize: 11, color: '#7a6a4a', marginLeft: 10 }}>
-            {total.toLocaleString('pt-BR')} empresas encontradas
+      <div
+        style={{
+          padding: '12px 16px',
+          borderBottom: '1px solid #ddd0b0',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          flexShrink: 0,
+          flexWrap: 'wrap',
+          rowGap: 8,
+        }}
+      >
+        <FileText size={16} color="#d97706" style={{ flexShrink: 0 }} />
+        <div style={{ flex: 1, minWidth: 100 }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: '#2c2416' }}>resultados.cnae</span>
+          <span style={{ fontSize: 11, color: '#7a6a4a', marginLeft: 8 }}>
+            {total.toLocaleString('pt-BR')} empresas
           </span>
         </div>
-        <div style={{ display: 'flex', gap: 6 }}>
+        <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
           <button onClick={handleExportCSV} style={btnStyle('#ede8da', '#2c2416')} title="Exportar CSV">
             <Download size={13} /> CSV
           </button>
@@ -128,32 +280,33 @@ export function ResultadosWindow({ resultado, onAbrirFicha, onPaginar, loadingPa
       </div>
 
       {/* Filter */}
-      <div style={{ padding: '10px 20px', borderBottom: '1px solid #ddd0b0', flexShrink: 0 }}>
+      <div style={{ padding: '10px 16px', borderBottom: '1px solid #ddd0b0', flexShrink: 0 }}>
         <div style={{ position: 'relative' }}>
-          <Search size={13} color="#a89868" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
+          <Search size={13} color="#a89868" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
           <input
-            type="text"
+            type="search"
             placeholder="Filtrar por nome, CNPJ, municipio..."
             value={filtro}
             onChange={e => setFiltro(e.target.value)}
             style={{
               width: '100%',
-              padding: '7px 10px 7px 30px',
+              padding: '9px 12px 9px 32px',
               background: '#fdf9f0',
               border: '1px solid #c8b888',
-              borderRadius: 6,
-              fontSize: 12,
+              borderRadius: 8,
+              fontSize: 13,
               color: '#2c2416',
               outline: 'none',
               boxSizing: 'border-box',
               fontFamily: 'inherit',
+              minHeight: 40,
             }}
           />
         </div>
       </div>
 
-      {/* Table */}
-      <div style={{ flex: 1, overflowY: 'auto' }}>
+      {/* Content */}
+      <div style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
         {loadingPagina ? (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 200, color: '#7a6a4a', fontSize: 13 }}>
             Carregando...
@@ -163,96 +316,126 @@ export function ResultadosWindow({ resultado, onAbrirFicha, onPaginar, loadingPa
             Nenhuma empresa encontrada com este filtro.
           </div>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead style={{ position: 'sticky', top: 0 }}>
-              <tr>
-                <th style={thStyle} onClick={() => handleSort('razaoSocial')}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>Razao Social <SortIcon k="razaoSocial" /></div>
-                </th>
-                <th style={thStyle} onClick={() => handleSort('municipio')}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>Municipio <SortIcon k="municipio" /></div>
-                </th>
-                <th style={thStyle} onClick={() => handleSort('uf')}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>UF <SortIcon k="uf" /></div>
-                </th>
-                <th style={thStyle} onClick={() => handleSort('porte')}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>Porte <SortIcon k="porte" /></div>
-                </th>
-                <th style={thStyle} onClick={() => handleSort('capitalSocial')}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>Capital <SortIcon k="capitalSocial" /></div>
-                </th>
-                <th style={thStyle} onClick={() => handleSort('situacao')}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>Situacao <SortIcon k="situacao" /></div>
-                </th>
-                <th style={thStyle}>Acao</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sorted.map((empresa, i) => (
-                <tr
-                  key={empresa.cnpj}
-                  style={{ background: i % 2 === 0 ? '#faf8f2' : '#f5f1e8' }}
-                  onMouseEnter={e => (e.currentTarget.style.background = '#fef3c7')}
-                  onMouseLeave={e => (e.currentTarget.style.background = i % 2 === 0 ? '#faf8f2' : '#f5f1e8')}
-                >
-                  <td style={tdStyle}>
-                    <div style={{ fontWeight: 600, fontSize: 12, color: '#2c2416', marginBottom: 2 }}>
-                      {empresa.nomeFantasia || empresa.razaoSocial}
-                    </div>
-                    <div style={{ fontSize: 10, color: '#a89868', fontFamily: 'monospace' }}>
-                      {formatCNPJ(empresa.cnpj)}
-                    </div>
-                  </td>
-                  <td style={tdStyle}>{empresa.municipio}</td>
-                  <td style={{ ...tdStyle, textAlign: 'center', fontWeight: 600 }}>{empresa.uf}</td>
-                  <td style={tdStyle}>{empresa.porte}</td>
-                  <td style={{ ...tdStyle, fontFamily: 'monospace', fontSize: 11 }}>
-                    {formatCapital(empresa.capitalSocial)}
-                  </td>
-                  <td style={tdStyle}>
-                    <span style={{
-                      display: 'inline-block',
-                      padding: '2px 8px',
-                      borderRadius: 99,
-                      fontSize: 10,
-                      fontWeight: 700,
-                      background: situacaoColor(empresa.situacao) + '22',
-                      color: situacaoColor(empresa.situacao),
-                      border: `1px solid ${situacaoColor(empresa.situacao)}44`,
-                    }}>
-                      {empresa.situacao}
-                    </span>
-                  </td>
-                  <td style={tdStyle}>
-                    <button
-                      onClick={() => onAbrirFicha(empresa)}
-                      style={{
-                        padding: '4px 10px',
-                        background: '#fbbf24',
-                        border: 'none',
-                        borderRadius: 5,
-                        fontSize: 11,
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        color: '#1a1208',
-                        fontFamily: 'inherit',
-                      }}
+          <>
+            {/* Desktop: table */}
+            <div className="res-table-view" style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 700 }}>
+                <thead style={{ position: 'sticky', top: 0, zIndex: 2 }}>
+                  <tr>
+                    {(
+                      [
+                        { k: 'razaoSocial', label: 'Razao Social' },
+                        { k: 'municipio', label: 'Municipio' },
+                        { k: 'uf', label: 'UF' },
+                        { k: 'porte', label: 'Porte' },
+                        { k: 'capitalSocial', label: 'Capital' },
+                        { k: 'situacao', label: 'Situacao' },
+                      ] as { k: SortKey; label: string }[]
+                    ).map(({ k, label }) => (
+                      <th key={k} style={thStyle} onClick={() => handleSort(k)}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          {label}
+                          <SortIcon sortKey={sortKey} k={k} sortDir={sortDir} />
+                        </div>
+                      </th>
+                    ))}
+                    <th style={thStyle}>Acao</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sorted.map((empresa, i) => (
+                    <tr
+                      key={empresa.cnpj}
+                      className="res-row"
+                      style={{ background: i % 2 === 0 ? '#faf8f2' : '#f5f1e8' }}
                     >
-                      Ficha
-                    </button>
-                  </td>
-                </tr>
+                      <td style={tdStyle}>
+                        <div style={{ fontWeight: 600, fontSize: 12, color: '#2c2416', marginBottom: 2 }}>
+                          {empresa.nomeFantasia || empresa.razaoSocial}
+                        </div>
+                        <div style={{ fontSize: 10, color: '#a89868', fontFamily: 'monospace' }}>
+                          {formatCNPJ(empresa.cnpj)}
+                        </div>
+                      </td>
+                      <td style={tdStyle}>{empresa.municipio}</td>
+                      <td style={{ ...tdStyle, textAlign: 'center', fontWeight: 600 }}>{empresa.uf}</td>
+                      <td style={tdStyle}>{empresa.porte}</td>
+                      <td style={{ ...tdStyle, fontFamily: 'monospace', fontSize: 11 }}>
+                        {formatCapital(empresa.capitalSocial)}
+                      </td>
+                      <td style={tdStyle}>
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            padding: '2px 8px',
+                            borderRadius: 99,
+                            fontSize: 10,
+                            fontWeight: 700,
+                            background: situacaoColor(empresa.situacao) + '22',
+                            color: situacaoColor(empresa.situacao),
+                            border: `1px solid ${situacaoColor(empresa.situacao)}44`,
+                          }}
+                        >
+                          {empresa.situacao}
+                        </span>
+                      </td>
+                      <td style={tdStyle}>
+                        <button
+                          onClick={() => onAbrirFicha(empresa)}
+                          style={{
+                            padding: '5px 12px',
+                            background: '#fbbf24',
+                            border: 'none',
+                            borderRadius: 6,
+                            fontSize: 11,
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            color: '#1a1208',
+                            fontFamily: 'inherit',
+                          }}
+                        >
+                          Ficha
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile: cards */}
+            <div
+              className="res-cards-view"
+              style={{
+                flexDirection: 'column',
+                gap: 12,
+                padding: '12px 16px',
+                overflowY: 'auto',
+              }}
+            >
+              {sorted.map(empresa => (
+                <EmpresaCard key={empresa.cnpj} empresa={empresa} onAbrirFicha={onAbrirFicha} />
               ))}
-            </tbody>
-          </table>
+            </div>
+          </>
         )}
       </div>
 
       {/* Paginacao */}
       {ultimaPagina > 1 && (
-        <div style={{ padding: '10px 20px', borderTop: '1px solid #ddd0b0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+        <div
+          style={{
+            padding: '10px 16px',
+            borderTop: '1px solid #ddd0b0',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexShrink: 0,
+            gap: 8,
+          }}
+        >
           <span style={{ fontSize: 11, color: '#7a6a4a' }}>
-            Pagina {pagina} de {ultimaPagina}
+            Pag. {pagina} / {ultimaPagina}
           </span>
           <div style={{ display: 'flex', gap: 6 }}>
             <button
@@ -274,21 +457,4 @@ export function ResultadosWindow({ resultado, onAbrirFicha, onPaginar, loadingPa
       )}
     </div>
   )
-}
-
-function btnStyle(bg: string, color: string): React.CSSProperties {
-  return {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 4,
-    padding: '5px 10px',
-    background: bg,
-    border: '1px solid #c8b888',
-    borderRadius: 5,
-    fontSize: 11,
-    fontWeight: 600,
-    cursor: 'pointer',
-    color,
-    fontFamily: 'inherit',
-  }
 }

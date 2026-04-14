@@ -9,7 +9,21 @@ import { BuscaWindow } from './windows/BuscaWindow'
 import { ResultadosWindow } from './windows/ResultadosWindow'
 import { FichaWindow } from './windows/FichaWindow'
 import { CnaeTerminalWindow } from './windows/CnaeTerminalWindow'
+import { MobileLayout } from './MobileLayout'
 import type { Empresa, BuscaResult, BuscaParams } from '@/types/empresa'
+
+// ─── Hook: detect mobile ──────────────────────────────────────────────────────
+function useIsMobile(breakpoint = 768) {
+  const [isMobile, setIsMobile] = useState(false)
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${breakpoint}px)`)
+    setIsMobile(mq.matches)
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [breakpoint])
+  return isMobile
+}
 
 // ─── Window types ──────────────────────────────────────────────────────────────
 
@@ -241,11 +255,13 @@ function trafficBtn(bg: string): React.CSSProperties {
   }
 }
 
-// ─── Desktop ──────────────────────────────────────────────────────────────────
+// ─── Desktop ────────────────────────────────────────────��─────────────────────
 
 let zTop = 100
 
 export function CnaeDesktop() {
+  const isMobile = useIsMobile()
+  if (isMobile) return <MobileLayout />
   const [windows, setWindows] = useState<OsWindow[]>([])
   const [lastResult, setLastResult] = useState<BuscaResult | null>(null)
   const [lastParams, setLastParams] = useState<BuscaParams | null>(null)
