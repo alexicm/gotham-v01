@@ -267,7 +267,7 @@ export function CnaeTerminalWindow({ onAbrirBusca, onResultados, onAbrirFicha }:
             fontFamily: 'monospace',
             caretColor: '#fbbf24',
           }}
-          autoFocus={typeof window !== 'undefined' && window.innerWidth > 768}
+          autoFocus
         />
       </div>
       <style>{`

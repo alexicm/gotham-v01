@@ -264,14 +264,50 @@ export function CnaeDesktop({ onLogout }: { onLogout?: () => void }) {
   return <CnaeDesktopOS onLogout={onLogout} />
 }
 
-let zTop = 100
+// Wrapper que mantém estado de loading/resultado isolado da janela de resultados
+function ResultadosDesktopWrapper({
+  resultado: initialResultado,
+  onAbrirFicha,
+  onPaginar,
+}: {
+  resultado: BuscaResult
+  onAbrirFicha: (empresa: Empresa) => void
+  onPaginar: (pagina: number) => Promise<void>
+}) {
+  const [resultado, setResultado] = useState(initialResultado)
+  const [loading, setLoading] = useState(false)
+
+  // Sincroniza quando uma nova busca substitui o resultado
+  useEffect(() => { setResultado(initialResultado) }, [initialResultado])
+
+  const handlePaginar = async (pagina: number) => {
+    setLoading(true)
+    try {
+      await onPaginar(pagina)
+      // O pai chama openResultados que recria o wrapper com novo resultado;
+      // mas caso queira atualizar inline, o loading é desligado pelo finally abaixo
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <ResultadosWindow
+      resultado={resultado}
+      onAbrirFicha={onAbrirFicha}
+      loadingPagina={loading}
+      onPaginar={handlePaginar}
+    />
+  )
+}
 
 function CnaeDesktopOS({ onLogout }: { onLogout?: () => void }) {
   const [windows, setWindows] = useState<OsWindow[]>([])
   const [lastResult, setLastResult] = useState<BuscaResult | null>(null)
   const [lastParams, setLastParams] = useState<BuscaParams | null>(null)
-  const [loadingPagina, setLoadingPagina] = useState(false)
   const [clock, setClock] = useState('')
+  // zTop como ref para evitar reset no hot-reload e conflitos entre renders
+  const zTopRef = useRef(100)
 
   useEffect(() => {
     const tick = () => {
@@ -279,13 +315,12 @@ function CnaeDesktopOS({ onLogout }: { onLogout?: () => void }) {
       setClock(now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }))
     }
     tick()
-    const id = setInterval(tick, 10000)
+    const id = setInterval(tick, 60000)
     return () => clearInterval(id)
   }, [])
 
   const upsertWindow = useCallback((id: string, partial: Partial<OsWindow> & { content: React.ReactNode; title: string; icon: React.ReactNode }) => {
-    zTop++
-    const z = zTop
+    const z = ++zTopRef.current
     setWindows(prev => {
       const exists = prev.find(w => w.id === id)
       if (exists) {
@@ -305,11 +340,11 @@ function CnaeDesktopOS({ onLogout }: { onLogout?: () => void }) {
     })
   }, [])
 
-  const closeWindow = (id: string) => setWindows(prev => prev.filter(w => w.id !== id))
-  const minimizeWindow = (id: string) => setWindows(prev => prev.map(w => w.id === id ? { ...w, minimized: true } : w))
+  const closeWindow = useCallback((id: string) => setWindows(prev => prev.filter(w => w.id !== id)), [])
+  const minimizeWindow = useCallback((id: string) => setWindows(prev => prev.map(w => w.id === id ? { ...w, minimized: true } : w)), [])
   const focusWindow = useCallback((id: string) => {
-    zTop++
-    setWindows(prev => prev.map(w => w.id === id ? { ...w, zIndex: zTop, minimized: false } : w))
+    const z = ++zTopRef.current
+    setWindows(prev => prev.map(w => w.id === id ? { ...w, zIndex: z, minimized: false } : w))
   }, [])
   const moveWindow = useCallback((id: string, x: number, y: number) => {
     setWindows(prev => prev.map(w => w.id === id ? { ...w, x, y } : w))
@@ -317,9 +352,13 @@ function CnaeDesktopOS({ onLogout }: { onLogout?: () => void }) {
   const resizeWindow = useCallback((id: string, width: number, height: number) => {
     setWindows(prev => prev.map(w => w.id === id ? { ...w, width, height } : w))
   }, [])
-  const maximizeWindow = (id: string) => {
-    setWindows(prev => prev.map(w => w.id === id ? { ...w, x: 0, y: 38, width: window.innerWidth, height: window.innerHeight - 86, zIndex: ++zTop } : w))
-  }
+  const maximizeWindow = useCallback((id: string) => {
+    const z = ++zTopRef.current
+    setWindows(prev => prev.map(w => w.id === id
+      ? { ...w, x: 0, y: 38, width: window.innerWidth, height: window.innerHeight - 86, zIndex: z }
+      : w
+    ))
+  }, [])
 
   // Stable refs so callbacks inside windows always call the latest version
   const openResultadosRef = useRef<(r: BuscaResult, p: BuscaParams) => void>(() => {})
@@ -338,42 +377,43 @@ function CnaeDesktopOS({ onLogout }: { onLogout?: () => void }) {
     })
   }, [upsertWindow])
 
+  // ref para lastParams para usar dentro de callbacks sem recapturar closure
+  const lastParamsRef = useRef<BuscaParams | null>(null)
+  useEffect(() => { lastParamsRef.current = lastParams }, [lastParams])
+
   // ─ Open Resultados ─
   const openResultados = useCallback((result: BuscaResult, params: BuscaParams) => {
+    const paginar = async (pagina: number) => {
+      const p = lastParamsRef.current
+      if (!p) return
+      const cnaes = (p.cnae ?? '').split(/[,\s]+/).map(c => parseInt(c.replace(/\D/g, ''), 10)).filter(Boolean)
+      const porPagina = p.porPagina ?? 50
+      const payload: Record<string, unknown> = {
+        cnaes,
+        inicio: (pagina - 1) * porPagina,
+        quantidade: porPagina,
+      }
+      if (p.uf) payload.estados = [p.uf.toUpperCase()]
+      const res = await fetch('/api/busca-cnae', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      const data: BuscaResult = await res.json()
+      setLastResult(data)
+      openResultadosRef.current(data, lastParamsRef.current ?? p)
+    }
+
     upsertWindow('resultados', {
       title: `resultados.cnae — ${result.total.toLocaleString('pt-BR')} empresas`,
       icon: <FileText size={13} color="#d97706" />,
       width: 900,
       height: 560,
       content: (
-        <ResultadosWindow
+        <ResultadosDesktopWrapper
           resultado={result}
           onAbrirFicha={(empresa: Empresa) => openFichaRef.current(empresa.cnpj, empresa)}
-          loadingPagina={false}
-          onPaginar={async (pagina) => {
-            if (!params) return
-            setLoadingPagina(true)
-            const cnaes = (params.cnae ?? '').split(/[,\s]+/).map(c => parseInt(c.replace(/\D/g, ''), 10)).filter(Boolean)
-            const porPagina = params.porPagina ?? 50
-            const payload: Record<string, unknown> = {
-              cnaes,
-              inicio: (pagina - 1) * porPagina,
-              quantidade: porPagina,
-            }
-            if (params.uf) payload.estados = [params.uf.toUpperCase()]
-            try {
-              const res = await fetch('/api/busca-cnae', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-              })
-              const data: BuscaResult = await res.json()
-              setLastResult(data)
-              openResultadosRef.current(data, params)
-            } finally {
-              setLoadingPagina(false)
-            }
-          }}
+          onPaginar={paginar}
         />
       ),
     })
@@ -410,13 +450,13 @@ function CnaeDesktopOS({ onLogout }: { onLogout?: () => void }) {
           onAbrirBusca={() => openBuscaRef.current()}
           onResultados={(result) => {
             setLastResult(result)
-            openResultadosRef.current(result, lastParams ?? {})
+            openResultadosRef.current(result, lastParamsRef.current ?? {})
           }}
           onAbrirFicha={(cnpj) => openFichaRef.current(cnpj)}
         />
       ),
     })
-  }, [upsertWindow, lastParams])
+  }, [upsertWindow])
 
   // Keep refs up-to-date
   useEffect(() => { openResultadosRef.current = openResultados }, [openResultados])

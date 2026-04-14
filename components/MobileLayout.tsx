@@ -228,6 +228,11 @@ export function MobileLayout({ onLogout }: { onLogout?: () => void }) {
 
     const cnaes = (p.cnae ?? '').split(/[,\s]+/).map(c => parseInt(c.replace(/\D/g, ''), 10)).filter(Boolean)
     const porPagina = p.porPagina ?? 50
+    // atualiza params com a nova pagina para manter estado correto
+    const newParams: BuscaParams = { ...p, pagina }
+    paramsRef.current = newParams
+    setParams(newParams)
+
     const payload: Record<string, unknown> = {
       cnaes,
       inicio: (pagina - 1) * porPagina,
