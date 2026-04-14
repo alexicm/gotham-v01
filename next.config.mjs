@@ -1,9 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Mantém build funcionando mesmo com warnings de ESLint em producao
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   // Mantém erros de TypeScript visíveis mas sem bloquear o build no deploy
   typescript: {
     ignoreBuildErrors: true,
