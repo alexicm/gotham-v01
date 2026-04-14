@@ -64,6 +64,9 @@ export function BuscaWindow({ onResultados, onLoadingChange }: Props) {
     setLoading(true)
     onLoadingChange?.(true)
 
+    // Converte string de CNAEs separados por virgula em array de numeros
+    const cnaes = cnae.trim().split(/[,\s]+/).map(c => parseInt(c.replace(/\D/g, ''), 10)).filter(Boolean)
+
     const params: BuscaParams = {
       cnae: cnae.trim(),
       uf: uf || undefined,
@@ -73,16 +76,20 @@ export function BuscaWindow({ onResultados, onLoadingChange }: Props) {
       porPagina,
     }
 
-    try {
-      const qs = new URLSearchParams()
-      qs.set('cnae', params.cnae!)
-      if (params.uf) qs.set('uf', params.uf)
-      if (params.municipio) qs.set('municipio', params.municipio)
-      if (params.porte) qs.set('porte', params.porte)
-      qs.set('pagina', '1')
-      qs.set('porPagina', String(porPagina))
+    // Payload para POST /api/busca-cnae (conforme documentação Lista CNAE)
+    const payload: Record<string, unknown> = {
+      cnaes,
+      inicio: 0,
+      quantidade: porPagina,
+    }
+    if (uf) payload.estados = [uf.toUpperCase()]
 
-      const res = await fetch(`/api/busca-cnae?${qs.toString()}`)
+    try {
+      const res = await fetch('/api/busca-cnae', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
       const data = await res.json()
 
       if (!res.ok) {

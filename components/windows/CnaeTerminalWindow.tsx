@@ -89,13 +89,21 @@ export function CnaeTerminalWindow({ onAbrirBusca, onResultados, onAbrirFicha }:
     addLines([{ type: 'dim', text: `Buscando CNAE ${cnae}${uf ? ` | UF: ${uf}` : ''}${municipio ? ` | Municipio: ${municipio}` : ''}...` }])
     setLoading(true)
 
-    const qs = new URLSearchParams({ cnae, pagina: '1', porPagina: n })
-    if (uf) qs.set('uf', uf)
-    if (municipio) qs.set('municipio', municipio)
-    if (porte) qs.set('porte', porte)
+    // Converte string de CNAEs em array de numeros para a API Lista CNAE (POST)
+    const cnaes = cnae.split(/[,\s]+/).map(c => parseInt(c.replace(/\D/g, ''), 10)).filter(Boolean)
+    const payload: Record<string, unknown> = {
+      cnaes,
+      inicio: 0,
+      quantidade: parseInt(n, 10) || 25,
+    }
+    if (uf) payload.estados = [uf.toUpperCase()]
 
     try {
-      const res = await fetch(`/api/busca-cnae?${qs}`)
+      const res = await fetch('/api/busca-cnae', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
       const data: BuscaResult & { error?: string } = await res.json()
 
       if (!res.ok) {

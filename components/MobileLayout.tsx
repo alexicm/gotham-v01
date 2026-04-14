@@ -204,18 +204,28 @@ export function MobileLayout() {
     const p = paramsRef.current
     if (!p) return
     setLoadingPagina(true)
-    const qs = new URLSearchParams()
-    qs.set('cnae', p.cnae ?? '')
-    if (p.uf) qs.set('uf', p.uf)
-    if (p.municipio) qs.set('municipio', p.municipio)
-    if (p.porte) qs.set('porte', p.porte)
-    qs.set('pagina', String(pagina))
-    qs.set('porPagina', String(p.porPagina ?? 50))
-    const res = await fetch(`/api/busca-cnae?${qs}`)
-    const data: BuscaResult = await res.json()
-    setLoadingPagina(false)
-    setResultado(data)
-    resultadoRef.current = data
+
+    const cnaes = (p.cnae ?? '').split(/[,\s]+/).map(c => parseInt(c.replace(/\D/g, ''), 10)).filter(Boolean)
+    const porPagina = p.porPagina ?? 50
+    const payload: Record<string, unknown> = {
+      cnaes,
+      inicio: (pagina - 1) * porPagina,
+      quantidade: porPagina,
+    }
+    if (p.uf) payload.estados = [p.uf.toUpperCase()]
+
+    try {
+      const res = await fetch('/api/busca-cnae', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      const data: BuscaResult = await res.json()
+      setResultado(data)
+      resultadoRef.current = data
+    } finally {
+      setLoadingPagina(false)
+    }
   }, [])
 
   const handleTerminalResultados = useCallback((result: BuscaResult) => {

@@ -353,18 +353,26 @@ function CnaeDesktopOS() {
           onPaginar={async (pagina) => {
             if (!params) return
             setLoadingPagina(true)
-            const qs = new URLSearchParams()
-            qs.set('cnae', params.cnae ?? '')
-            if (params.uf) qs.set('uf', params.uf)
-            if (params.municipio) qs.set('municipio', params.municipio)
-            if (params.porte) qs.set('porte', params.porte)
-            qs.set('pagina', String(pagina))
-            qs.set('porPagina', String(params.porPagina ?? 50))
-            const res = await fetch(`/api/busca-cnae?${qs}`)
-            const data: BuscaResult = await res.json()
-            setLoadingPagina(false)
-            setLastResult(data)
-            openResultadosRef.current(data, params)
+            const cnaes = (params.cnae ?? '').split(/[,\s]+/).map(c => parseInt(c.replace(/\D/g, ''), 10)).filter(Boolean)
+            const porPagina = params.porPagina ?? 50
+            const payload: Record<string, unknown> = {
+              cnaes,
+              inicio: (pagina - 1) * porPagina,
+              quantidade: porPagina,
+            }
+            if (params.uf) payload.estados = [params.uf.toUpperCase()]
+            try {
+              const res = await fetch('/api/busca-cnae', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+              })
+              const data: BuscaResult = await res.json()
+              setLastResult(data)
+              openResultadosRef.current(data, params)
+            } finally {
+              setLoadingPagina(false)
+            }
           }}
         />
       ),
