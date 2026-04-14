@@ -11,5 +11,5 @@ export default function Home() {
     return <LoginScreen onLogin={() => setAutenticado(true)} />
   }
 
-  return <CnaeDesktop />
+  return <CnaeDesktop onLogout={() => setAutenticado(false)} />
 }

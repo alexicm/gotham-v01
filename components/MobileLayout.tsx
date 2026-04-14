@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useCallback } from 'react'
-import { Search, FileText, Building2, Terminal, ChevronLeft } from 'lucide-react'
+import { Search, FileText, Building2, Terminal, ChevronLeft, LogOut } from 'lucide-react'
 import { BuscaWindow } from './windows/BuscaWindow'
 import { ResultadosWindow } from './windows/ResultadosWindow'
 import { FichaWindow } from './windows/FichaWindow'
@@ -21,10 +21,12 @@ function MobileHeader({
   title,
   subtitle,
   onBack,
+  onLogout,
 }: {
   title: string
   subtitle?: string
   onBack?: () => void
+  onLogout?: () => void
 }) {
   return (
     <div
@@ -32,7 +34,7 @@ function MobileHeader({
         display: 'flex',
         alignItems: 'center',
         gap: 10,
-        padding: '0 16px',
+        padding: '0 12px',
         height: 52,
         background: '#f5f1e8',
         borderBottom: '1.5px solid #c8b888',
@@ -62,23 +64,6 @@ function MobileHeader({
           <ChevronLeft size={18} color="#2c2416" />
         </button>
       )}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div
-          style={{
-            fontSize: 13,
-            fontWeight: 700,
-            color: '#2c2416',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {title}
-        </div>
-        {subtitle && (
-          <div style={{ fontSize: 11, color: '#7a6a4a', marginTop: 1 }}>{subtitle}</div>
-        )}
-      </div>
       {/* CNAE OS brand */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
         <div
@@ -96,6 +81,45 @@ function MobileHeader({
         </div>
         <span style={{ fontSize: 12, fontWeight: 800, color: '#2c2416' }}>CNAE OS</span>
       </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div
+          style={{
+            fontSize: 12,
+            fontWeight: 700,
+            color: '#2c2416',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {title}
+        </div>
+        {subtitle && (
+          <div style={{ fontSize: 10, color: '#7a6a4a', marginTop: 1 }}>{subtitle}</div>
+        )}
+      </div>
+      {onLogout && (
+        <button
+          onClick={onLogout}
+          aria-label="Sair do sistema"
+          title="Sair"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 34,
+            height: 34,
+            background: '#ede8da',
+            border: '1px solid #c8b888',
+            borderRadius: 8,
+            cursor: 'pointer',
+            flexShrink: 0,
+            color: '#7a6a4a',
+          }}
+        >
+          <LogOut size={16} color="#7a6a4a" />
+        </button>
+      )}
     </div>
   )
 }
@@ -177,7 +201,7 @@ function BottomNav({
 
 // ─── Mobile Layout ─────────────────────────────────────────────────────────────
 
-export function MobileLayout() {
+export function MobileLayout({ onLogout }: { onLogout?: () => void }) {
   const [tab, setTab] = useState<Tab>('busca')
   const [resultado, setResultado] = useState<BuscaResult | null>(null)
   const [params, setParams] = useState<BuscaParams | null>(null)
@@ -269,6 +293,7 @@ export function MobileLayout() {
         title={h.title}
         subtitle={h.subtitle}
         onBack={tab === 'ficha' ? () => setTab('resultados') : undefined}
+        onLogout={onLogout}
       />
 
       {/* Views */}

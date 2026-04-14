@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import {
   Search, Terminal, FileText, Building2, Clock, BarChart2,
-  X, Minus, Maximize2, GripVertical
+  X, Minus, Maximize2, GripVertical, LogOut
 } from 'lucide-react'
 import { BuscaWindow } from './windows/BuscaWindow'
 import { ResultadosWindow } from './windows/ResultadosWindow'
@@ -258,15 +258,15 @@ function trafficBtn(bg: string): React.CSSProperties {
 // ─── Desktop ────────────────────────────────────────────��─────────────────────
 
 // ─── Root: detects mobile BEFORE rendering the full OS ────────────────────────
-export function CnaeDesktop() {
+export function CnaeDesktop({ onLogout }: { onLogout?: () => void }) {
   const isMobile = useIsMobile()
-  if (isMobile) return <MobileLayout />
-  return <CnaeDesktopOS />
+  if (isMobile) return <MobileLayout onLogout={onLogout} />
+  return <CnaeDesktopOS onLogout={onLogout} />
 }
 
 let zTop = 100
 
-function CnaeDesktopOS() {
+function CnaeDesktopOS({ onLogout }: { onLogout?: () => void }) {
   const [windows, setWindows] = useState<OsWindow[]>([])
   const [lastResult, setLastResult] = useState<BuscaResult | null>(null)
   const [lastParams, setLastParams] = useState<BuscaParams | null>(null)
@@ -503,6 +503,41 @@ function CnaeDesktopOS() {
           <span style={{ fontSize: 12, fontWeight: 600, color: '#2c2416', fontFamily: 'monospace' }}>
             {clock}
           </span>
+          {onLogout && (
+            <button
+              onClick={onLogout}
+              title="Sair"
+              aria-label="Sair do sistema"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 5,
+                padding: '4px 10px',
+                background: 'transparent',
+                border: '1px solid #c8b888',
+                borderRadius: 6,
+                fontSize: 11,
+                fontWeight: 600,
+                color: '#7a6a4a',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                transition: 'all 0.12s',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = '#fee2e2'
+                e.currentTarget.style.borderColor = '#f87171'
+                e.currentTarget.style.color = '#dc2626'
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = 'transparent'
+                e.currentTarget.style.borderColor = '#c8b888'
+                e.currentTarget.style.color = '#7a6a4a'
+              }}
+            >
+              <LogOut size={12} />
+              Sair
+            </button>
+          )}
         </div>
       </div>
 
