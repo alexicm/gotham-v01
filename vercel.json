@@ -1,0 +1,11 @@
+{
+  "framework": "nextjs",
+  "functions": {
+    "app/api/busca-cnae/route.ts": {
+      "maxDuration": 30
+    },
+    "app/api/cnpj/[cnpj]/route.ts": {
+      "maxDuration": 15
+    }
+  }
+}
