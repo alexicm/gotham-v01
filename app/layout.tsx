@@ -11,8 +11,8 @@ const _geistMono = V0_Font_Geist_Mono({ subsets: ['latin'], weight: ["100","200"
 const _sourceSerif_4 = V0_Font_Source_Serif_4({ subsets: ['latin'], weight: ["200","300","400","500","600","700","800","900"] })
 
 export const metadata: Metadata = {
-  title: 'OpenHog - OS-Themed Dev Tools',
-  description: 'An OS-themed website template featuring draggable windows and desktop interface',
+  title: 'CNAE OS — Inteligencia Empresarial Brasileira',
+  description: 'Busca e enriquecimento de empresas por CNAE com interface OS interativa. Dados via Lista CNAE e BrasilAPI.',
   generator: 'v0.app',
   icons: {
     icon: [
@@ -39,8 +39,8 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
-      <body className={`font-sans antialiased`}>
+    <html lang="pt-BR" className="bg-[#d4c4a8]">
+      <body className={`font-mono antialiased`} style={{ background: '#d4c4a8', overflow: 'hidden' }}>
         {children}
         <Analytics />
       </body>

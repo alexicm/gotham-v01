@@ -1,7 +1,5 @@
-'use client'
-
-import { Desktop } from '@/components/desktop'
+import { CnaeDesktop } from '@/components/CnaeDesktop'
 
 export default function Home() {
-  return <Desktop />
+  return <CnaeDesktop />
 }
