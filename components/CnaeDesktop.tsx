@@ -503,41 +503,31 @@ function CnaeDesktopOS({ onLogout }: { onLogout?: () => void }) {
           <span style={{ fontSize: 12, fontWeight: 600, color: '#2c2416', fontFamily: 'monospace' }}>
             {clock}
           </span>
-          {onLogout && (
-            <button
-              onClick={onLogout}
-              title="Sair"
-              aria-label="Sair do sistema"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 5,
-                padding: '4px 10px',
-                background: 'transparent',
-                border: '1px solid #c8b888',
-                borderRadius: 6,
-                fontSize: 11,
-                fontWeight: 600,
-                color: '#7a6a4a',
-                cursor: 'pointer',
-                fontFamily: 'inherit',
-                transition: 'all 0.12s',
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.background = '#fee2e2'
-                e.currentTarget.style.borderColor = '#f87171'
-                e.currentTarget.style.color = '#dc2626'
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.background = 'transparent'
-                e.currentTarget.style.borderColor = '#c8b888'
-                e.currentTarget.style.color = '#7a6a4a'
-              }}
-            >
-              <LogOut size={12} />
-              Sair
-            </button>
-          )}
+          <button
+            onClick={onLogout}
+            title="Sair do sistema"
+            aria-label="Sair do sistema"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 5,
+              padding: '3px 10px',
+              background: '#fee2e2',
+              border: '1px solid #f87171',
+              borderRadius: 6,
+              fontSize: 11,
+              fontWeight: 700,
+              color: '#dc2626',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              letterSpacing: '0.02em',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = '#fecaca' }}
+            onMouseLeave={e => { e.currentTarget.style.background = '#fee2e2' }}
+          >
+            <LogOut size={12} />
+            Sair
+          </button>
         </div>
       </div>
 

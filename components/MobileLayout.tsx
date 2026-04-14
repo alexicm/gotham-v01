@@ -98,28 +98,25 @@ function MobileHeader({
           <div style={{ fontSize: 10, color: '#7a6a4a', marginTop: 1 }}>{subtitle}</div>
         )}
       </div>
-      {onLogout && (
-        <button
-          onClick={onLogout}
-          aria-label="Sair do sistema"
-          title="Sair"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: 34,
-            height: 34,
-            background: '#ede8da',
-            border: '1px solid #c8b888',
-            borderRadius: 8,
-            cursor: 'pointer',
-            flexShrink: 0,
-            color: '#7a6a4a',
-          }}
-        >
-          <LogOut size={16} color="#7a6a4a" />
-        </button>
-      )}
+      <button
+        onClick={onLogout}
+        aria-label="Sair do sistema"
+        title="Sair"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: 34,
+          height: 34,
+          background: '#fee2e2',
+          border: '1px solid #f87171',
+          borderRadius: 8,
+          cursor: 'pointer',
+          flexShrink: 0,
+        }}
+      >
+        <LogOut size={16} color="#dc2626" />
+      </button>
     </div>
   )
 }
