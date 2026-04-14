@@ -1,8 +1,14 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import { CnaeDesktop } from '@/components/CnaeDesktop'
+import dynamic from 'next/dynamic'
 import { LoginScreen } from '@/components/LoginScreen'
+
+// Desabilita SSR para evitar acesso a window.matchMedia durante hidratacao
+const CnaeDesktop = dynamic(
+  () => import('@/components/CnaeDesktop').then((m) => ({ default: m.CnaeDesktop })),
+  { ssr: false }
+)
 
 export default function Home() {
   const [autenticado, setAutenticado] = useState(false)

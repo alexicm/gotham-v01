@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { BarChart2, Eye, EyeOff, LogIn } from 'lucide-react'
 
 // Credenciais válidas (hardcoded conforme solicitado)
@@ -27,7 +27,13 @@ export function LoginScreen({ onLogin }: Props) {
   const [erro, setErro] = useState('')
   const [loading, setLoading] = useState(false)
   const [shake, setShake] = useState(false)
+  const cpfRef = useRef<HTMLInputElement>(null)
   const codigoRef = useRef<HTMLInputElement>(null)
+
+  // Foca o campo CPF apenas no cliente para evitar hydration mismatch
+  useEffect(() => {
+    cpfRef.current?.focus()
+  }, [])
 
   function handleCpfChange(e: React.ChangeEvent<HTMLInputElement>) {
     const formatted = formatCPF(e.target.value)
@@ -125,8 +131,8 @@ export function LoginScreen({ onLogin }: Props) {
                 value={cpf}
                 onChange={handleCpfChange}
                 style={styles.input}
+                ref={cpfRef}
                 autoComplete="username"
-                autoFocus
               />
             </div>
 
