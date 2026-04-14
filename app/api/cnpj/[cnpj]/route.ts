@@ -16,19 +16,69 @@ export async function GET(
     const res = await fetch(
       `https://brasilapi.com.br/api/cnpj/v1/${digits}`,
       {
-        headers: { Accept: 'application/json' },
-        next: { revalidate: 3600 },
+        headers: {
+          Accept: 'application/json',
+          'User-Agent': 'GothamSearch/1.0 (+https://gotham-search.vercel.app)',
+        },
+        cache: 'no-store',
       }
     )
 
+    const rawText = await res.text()
+
     if (!res.ok) {
+      // 429 = rate limit, 403 = bloqueado — tenta via API alternativa
+      if (res.status === 403 || res.status === 429) {
+        const alt = await fetch(
+          `https://receitaws.com.br/v1/cnpj/${digits}`,
+          {
+            headers: {
+              Accept: 'application/json',
+              'User-Agent': 'GothamSearch/1.0',
+            },
+            cache: 'no-store',
+          }
+        )
+        if (alt.ok) {
+          const altRaw = await alt.json()
+          // receitaws usa campos ligeiramente diferentes
+          const empresa: Empresa = {
+            cnpj: digits,
+            razaoSocial: altRaw.nome ?? '',
+            nomeFantasia: altRaw.fantasia || altRaw.nome || '',
+            cnae: altRaw.atividade_principal?.[0]?.code?.replace(/[.\-\/]/g, '') ?? '',
+            descricaoCnae: altRaw.atividade_principal?.[0]?.text ?? '',
+            municipio: altRaw.municipio ?? '',
+            uf: altRaw.uf ?? '',
+            situacao: altRaw.situacao ?? '',
+            capitalSocial: parseFloat(String(altRaw.capital_social ?? '0').replace(/\D/g, '')) || 0,
+            porte: altRaw.porte ?? '',
+            email: altRaw.email,
+            telefone: altRaw.telefone,
+            logradouro: altRaw.logradouro,
+            numero: altRaw.numero,
+            complemento: altRaw.complemento,
+            bairro: altRaw.bairro,
+            cep: altRaw.cep,
+            dataInicio: altRaw.abertura,
+            naturezaJuridica: altRaw.natureza_juridica,
+            socios: altRaw.qsa,
+          }
+          return NextResponse.json(empresa)
+        }
+      }
       return NextResponse.json(
         { error: `CNPJ não encontrado (${res.status})` },
         { status: res.status }
       )
     }
 
-    const raw: EmpresaBrasilAPI = await res.json()
+    let raw: EmpresaBrasilAPI
+    try {
+      raw = JSON.parse(rawText)
+    } catch {
+      return NextResponse.json({ error: 'Resposta inválida da API' }, { status: 502 })
+    }
 
     const empresa: Empresa = {
       cnpj: raw.cnpj,
