@@ -23,7 +23,7 @@ const NEOFETCH = [
   { type: 'amber' as const, text: '  ╚██████╗██║ ╚████║██║  ██║███████╗' },
   { type: 'amber' as const, text: '   ╚═════╝╚═╝  ╚═══╝╚═╝  ╚═╝╚══════╝' },
   { type: 'dim' as const,   text: '  ────────────────────────────────────' },
-  { type: 'output' as const, text: '  OS:       CNAE OS v1.0.0' },
+  { type: 'output' as const, text: '  OS:       Gotham Search v1.0.0' },
   { type: 'output' as const, text: '  API:      Lista CNAE + BrasilAPI CNPJ' },
   { type: 'output' as const, text: '  Kernel:   Next.js 16 / React 19' },
   { type: 'output' as const, text: '  Shell:    cnae-shell 1.0' },

@@ -502,7 +502,7 @@ function CnaeDesktopOS({ onLogout }: { onLogout?: () => void }) {
           <div style={{ width: 20, height: 20, background: '#fbbf24', borderRadius: 5, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <BarChart2 size={12} color="#1a1208" />
           </div>
-          <span style={{ fontSize: 13, fontWeight: 800, color: '#2c2416', letterSpacing: '-0.02em' }}>CNAE OS</span>
+          <span style={{ fontSize: 13, fontWeight: 800, color: '#2c2416', letterSpacing: '-0.02em' }}>Gotham Search</span>
         </div>
 
         <div style={{ display: 'flex', gap: 2, flex: 1 }}>

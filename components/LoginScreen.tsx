@@ -107,7 +107,7 @@ export function LoginScreen({ onLogin }: Props) {
               <BarChart2 size={22} color="#d97706" strokeWidth={2} />
             </div>
             <div>
-              <div style={styles.logoTitle}>CNAE OS</div>
+              <div style={styles.logoTitle}>Gotham Search</div>
               <div style={styles.logoSub}>Sistema de Inteligencia Empresarial</div>
             </div>
           </div>
@@ -186,7 +186,7 @@ export function LoginScreen({ onLogin }: Props) {
         </div>
       </div>
 
-      <p style={styles.footer}>CNAE OS v1.0 — Dados: Lista CNAE + BrasilAPI</p>
+      <p style={styles.footer}>Gotham Search v1.0 — Dados: Lista CNAE + BrasilAPI</p>
     </div>
   )
 }

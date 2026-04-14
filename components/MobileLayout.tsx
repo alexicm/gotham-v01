@@ -64,7 +64,7 @@ function MobileHeader({
           <ChevronLeft size={18} color="#2c2416" />
         </button>
       )}
-      {/* CNAE OS brand */}
+      {/* Gotham Search brand */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
         <div
           style={{
@@ -79,7 +79,7 @@ function MobileHeader({
         >
           <Search size={11} color="#1a1208" />
         </div>
-        <span style={{ fontSize: 12, fontWeight: 800, color: '#2c2416' }}>CNAE OS</span>
+        <span style={{ fontSize: 12, fontWeight: 800, color: '#2c2416' }}>Gotham Search</span>
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div
@@ -275,7 +275,7 @@ export function MobileLayout({ onLogout }: { onLogout?: () => void }) {
       title: fichaTarget ? `ficha_${fichaTarget.cnpj.replace(/\D/g, '')}.cnpj` : 'ficha.cnpj',
       subtitle: 'Dados completos BrasilAPI',
     },
-    terminal: { title: 'terminal.cnae', subtitle: 'Shell CNAE OS' },
+    terminal: { title: 'terminal.cnae', subtitle: 'Shell Gotham Search' },
   }
 
   const h = headerMap[tab]

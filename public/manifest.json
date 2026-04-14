@@ -1,6 +1,6 @@
 {
-  "name": "CNAE OS",
-  "short_name": "CNAE OS",
+  "name": "Gotham Search",
+  "short_name": "Gotham",
   "description": "Busca e enriquecimento de empresas brasileiras por CNAE",
   "start_url": "/",
   "display": "standalone",

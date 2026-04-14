@@ -8,18 +8,18 @@ import { Geist_Mono } from 'next/font/google'
 const geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-mono' })
 
 export const metadata: Metadata = {
-  title: 'CNAE OS — Inteligencia Empresarial Brasileira',
+  title: 'Gotham Search — Inteligencia Empresarial Brasileira',
   description: 'Busca e enriquecimento de empresas brasileiras por CNAE com interface OS interativa.',
   generator: 'v0.app',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'CNAE OS',
+    title: 'Gotham Search',
   },
   formatDetection: { telephone: false },
   openGraph: {
-    title: 'CNAE OS',
+    title: 'Gotham Search',
     description: 'Busca empresas brasileiras por CNAE com dados completos da Receita Federal.',
     type: 'website',
   },
