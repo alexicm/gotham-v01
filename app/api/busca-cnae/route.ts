@@ -54,6 +54,8 @@ export async function POST(req: NextRequest) {
   if (body.cnpjs) params.set('cnpjs', JSON.stringify(body.cnpjs))
 
   const url = `${BASE}/buscar?${params.toString()}`
+  console.log('[v0] Lista CNAE URL:', url)
+  console.log('[v0] Lista CNAE token (primeiros 12):', token.substring(0, 12))
 
   try {
     const res = await fetch(url, {
@@ -65,6 +67,8 @@ export async function POST(req: NextRequest) {
     })
 
     const rawText = await res.text()
+    console.log('[v0] CNAE API status:', res.status, '| content-type:', res.headers.get('content-type'))
+    console.log('[v0] CNAE API raw (primeiros 300):', rawText.substring(0, 300))
 
     if (!res.ok) {
       return NextResponse.json(
