@@ -257,11 +257,16 @@ function trafficBtn(bg: string): React.CSSProperties {
 
 // ─── Desktop ────────────────────────────────────────────��─────────────────────
 
-let zTop = 100
-
+// ─── Root: detects mobile BEFORE rendering the full OS ────────────────────────
 export function CnaeDesktop() {
   const isMobile = useIsMobile()
   if (isMobile) return <MobileLayout />
+  return <CnaeDesktopOS />
+}
+
+let zTop = 100
+
+function CnaeDesktopOS() {
   const [windows, setWindows] = useState<OsWindow[]>([])
   const [lastResult, setLastResult] = useState<BuscaResult | null>(null)
   const [lastParams, setLastParams] = useState<BuscaParams | null>(null)

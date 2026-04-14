@@ -41,7 +41,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" style={{ background: '#d4c4a8' }}>
       <head>
-        <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+        <link rel="apple-touch-icon" href="/icons/icon-512.jpg" />
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body
