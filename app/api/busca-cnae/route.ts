@@ -3,7 +3,8 @@ import type { Empresa, BuscaResult } from '@/types/empresa'
 
 export const dynamic = 'force-dynamic'
 
-const BASE = 'https://listacnae.com.br/api/v1'
+// URL confirmada por teste direto: api.listacnae.com.br/v1 retorna JSON real
+const BASE = 'https://api.listacnae.com.br/v1'
 
 // A API Lista CNAE usa GET com query params JSON-encoded e token no header Authorization.
 // Este handler recebe POST do frontend e faz GET para a API externa.
@@ -54,8 +55,6 @@ export async function POST(req: NextRequest) {
   if (body.cnpjs) params.set('cnpjs', JSON.stringify(body.cnpjs))
 
   const url = `${BASE}/buscar?${params.toString()}`
-  console.log('[v0] Lista CNAE URL:', url)
-  console.log('[v0] Lista CNAE token (primeiros 12):', token.substring(0, 12))
 
   try {
     const res = await fetch(url, {
@@ -64,60 +63,58 @@ export async function POST(req: NextRequest) {
         Authorization: `Bearer ${token}`,
         Accept: 'application/json',
       },
+      cache: 'no-store',
     })
 
     const rawText = await res.text()
-    console.log('[v0] CNAE API status:', res.status, '| content-type:', res.headers.get('content-type'))
-    console.log('[v0] CNAE API raw (primeiros 300):', rawText.substring(0, 300))
 
-    if (!res.ok) {
-      return NextResponse.json(
-        { error: `Erro da API Lista CNAE: ${res.status}`, detail: rawText },
-        { status: res.status }
-      )
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let raw: any
+    let raw: Record<string, unknown>
     try {
       raw = JSON.parse(rawText)
     } catch {
       return NextResponse.json(
-        { error: 'Resposta da API não é JSON', detail: rawText.substring(0, 500) },
+        { error: 'Resposta inesperada da API Lista CNAE', detail: rawText.substring(0, 300) },
         { status: 502 }
       )
     }
 
-    // A API retorna array direto ou objeto com "empresas"/"data"/"dados"
-    const lista: Record<string, unknown>[] = Array.isArray(raw)
-      ? raw
-      : (raw.empresas ?? raw.dados ?? raw.data ?? [])
+    if (!res.ok) {
+      return NextResponse.json(
+        { error: String(raw.mensagem ?? `Erro ${res.status}`) },
+        { status: res.status }
+      )
+    }
 
-    const total: number = Array.isArray(raw)
-      ? raw.length
-      : (raw.total ?? raw.quantidade_total ?? lista.length)
+    // Campos confirmados pelo teste direto:
+    // quantidade_encontrada, quantidade_retornada, dados (array de empresas)
+    const lista: Record<string, unknown>[] =
+      (raw.dados as Record<string, unknown>[]) ??
+      (raw.empresas as Record<string, unknown>[]) ??
+      (raw.data as Record<string, unknown>[]) ??
+      []
 
+    const totalEncontrado = Number(raw.quantidade_encontrada ?? raw.total ?? lista.length)
     const paginaAtual = Math.floor(inicio / quantidade) + 1
-    const ultimaPagina = Math.ceil(total / quantidade) || 1
+    const ultimaPagina = Math.ceil(totalEncontrado / quantidade) || 1
 
     const empresas: Empresa[] = lista.map((e) => ({
-      cnpj: String(e.cnpj ?? ''),
-      razaoSocial: String(e.razao_social ?? ''),
-      nomeFantasia: String(e.nome_fantasia || e.razao_social || ''),
-      cnae: String(e.cnae_principal ?? e.cnae ?? cnaes[0]),
-      descricaoCnae: String(e.descricao_cnae ?? e.descricao ?? ''),
-      municipio: String(e.municipio ?? ''),
-      uf: String(e.uf ?? ''),
-      situacao: String(e.situacao ?? 'ATIVA'),
-      capitalSocial: Number(e.capital_social ?? 0),
-      porte: String(e.porte ?? ''),
-      email: e.email ? String(e.email) : undefined,
-      telefone: e.telefone ? String(e.telefone) : undefined,
+      cnpj:          String(e.cnpj ?? e.nu_cnpj ?? '').replace(/\D/g, ''),
+      razaoSocial:   String(e.razao_social ?? e.no_razao_social ?? ''),
+      nomeFantasia:  String(e.nome_fantasia ?? e.no_nome_fantasia ?? e.razao_social ?? ''),
+      cnae:          String(e.cnae_principal ?? e.co_cnae_principal ?? cnaes[0] ?? ''),
+      descricaoCnae: String(e.descricao_cnae ?? e.ds_cnae_principal ?? ''),
+      municipio:     String(e.municipio ?? e.no_municipio ?? ''),
+      uf:            String(e.uf ?? e.sg_uf ?? ''),
+      situacao:      String(e.situacao ?? e.ds_situacao_cadastral ?? 'ATIVA'),
+      capitalSocial: Number(e.capital_social ?? e.vl_capital_social ?? 0),
+      porte:         String(e.porte ?? e.ds_porte ?? ''),
+      email:         e.email ? String(e.email) : undefined,
+      telefone:      e.telefone ?? e.nu_ddd_telefone ? String(e.telefone ?? e.nu_ddd_telefone) : undefined,
     }))
 
     const result: BuscaResult = {
       empresas,
-      total,
+      total: totalEncontrado,
       pagina: paginaAtual,
       ultimaPagina,
     }
@@ -139,6 +136,7 @@ export async function GET() {
   try {
     const res = await fetch(`${BASE}/creditosAtivos`, {
       headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+      cache: 'no-store',
     })
     const text = await res.text()
     if (!res.ok) {

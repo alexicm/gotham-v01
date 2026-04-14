@@ -3,7 +3,7 @@ import urllib.error
 import json
 
 TOKEN = "19C29E4629A-52E796F1F871E229-4EM1Y4PRDMIILYE8SG1IK0N9S4QW66AJ"
-BASE  = "https://listacnae.com.br/api/v1"
+BASE  = "https://api.listacnae.com.br"
 
 PAYLOAD = {
     "inicio": 0,
@@ -12,71 +12,69 @@ PAYLOAD = {
     "estados": ["DF"],
 }
 
+BASES = [
+    "https://listacnae.com.br/api/v1",
+    "https://listacnae.com.br/api",
+    "https://api.listacnae.com.br/v1",
+    "https://api.listacnae.com.br",
+]
 
-def test(label: str, method: str, url: str, body=None, headers=None):
+def test(label: str, method: str, url: str, body=None, extra_headers=None):
     print(f"\n{'='*60}")
     print(f"TESTE: {label}")
     print(f"  {method} {url}")
-    if body:
-        print(f"  Body: {json.dumps(body)[:120]}")
-    h = {"Authorization": f"Bearer {TOKEN}", "Accept": "application/json"}
-    if headers:
-        h.update(headers)
-
+    h = {"Accept": "application/json"}
+    if extra_headers:
+        h.update(extra_headers)
     data = json.dumps(body).encode() if body else None
+    if data:
+        h["Content-Type"] = "application/json"
     req = urllib.request.Request(url, data=data, headers=h, method=method)
     try:
-        with urllib.request.urlopen(req, timeout=15) as r:
+        with urllib.request.urlopen(req, timeout=10) as r:
             raw = r.read().decode()
-            print(f"  Status: {r.status}")
-            print(f"  Content-Type: {r.headers.get('Content-Type')}")
-            print(f"  Resposta (300 chars): {raw[:300]}")
+            ct = r.headers.get("Content-Type", "")
+            print(f"  Status: {r.status} | CT: {ct[:40]}")
+            print(f"  Resposta: {raw[:200]}")
     except urllib.error.HTTPError as e:
         raw = e.read().decode()
-        print(f"  HTTP ERROR {e.code}: {raw[:300]}")
+        print(f"  HTTP {e.code}: {raw[:200]}")
     except Exception as ex:
         print(f"  EXCEPTION: {ex}")
 
-
-# 1) GET com body JSON (conforme doc diz "requisicoes JSON")
-test(
-    "GET + body JSON",
-    "GET", f"{BASE}/buscar",
-    body=PAYLOAD,
-    headers={"Content-Type": "application/json"},
-)
-
-# 2) POST com body JSON
-test(
-    "POST + body JSON",
-    "POST", f"{BASE}/buscar",
-    body=PAYLOAD,
-    headers={"Content-Type": "application/json"},
-)
-
-# 3) GET com query string (arrays como JSON)
 import urllib.parse
-qs = urllib.parse.urlencode({
-    "inicio": 0,
-    "quantidade": 5,
-    "cnaes": json.dumps([8630504]),
-    "estados": json.dumps(["DF"]),
-})
-test(
-    "GET + query string (JSON arrays)",
-    "GET", f"{BASE}/buscar?{qs}",
-)
 
-# 4) GET creditos (sem payload)
-test(
-    "GET /creditosAtivos",
-    "GET", f"{BASE}/creditosAtivos",
-)
+auth = {"Authorization": f"Bearer {TOKEN}"}
 
-# 5) Testar base URL alternativa (sem /api/v1)
-test(
-    "GET + body JSON (base sem /api/v1)",
-    "GET", "https://listacnae.com.br/buscar",
-    body=PAYLOAD,
-    headers={"Content-Type": "application/json"},
-)
+# ENDPOINT CONFIRMADO: GET https://api.listacnae.com.br/v1/buscar
+# Retornou 400 com JSON real - parametros devem ir como query string
+
+# 1) Query string com inicio, quantidade (sem arrays JSON, sem cnaes/estados)
+qs1 = urllib.parse.urlencode({"inicio": 0, "quantidade": 5})
+test("GET /v1/buscar?inicio&quantidade (sem filtros)", "GET",
+    f"{BASE}/v1/buscar?{qs1}", extra_headers=auth)
+
+# 2) cnaes como lista separada por virgula
+qs2 = urllib.parse.urlencode({"inicio": 0, "quantidade": 5,
+    "cnaes": "8630504", "estados": "DF"})
+test("GET /v1/buscar?cnaes=num&estados=UF", "GET",
+    f"{BASE}/v1/buscar?{qs2}", extra_headers=auth)
+
+# 3) cnaes como JSON array na query string
+qs3 = urllib.parse.urlencode({"inicio": 0, "quantidade": 5,
+    "cnaes": json.dumps([8630504]), "estados": json.dumps(["DF"])})
+test("GET /v1/buscar?cnaes=JSON&estados=JSON", "GET",
+    f"{BASE}/v1/buscar?{qs3}", extra_headers=auth)
+
+# 4) cnaes repetido (multi-value)
+qs4 = "inicio=0&quantidade=5&cnaes=8630504&estados=DF"
+test("GET /v1/buscar?cnaes=num plain", "GET",
+    f"{BASE}/v1/buscar?{qs4}", extra_headers=auth)
+
+# 5) /v1/creditosAtivos
+test("GET /v1/creditosAtivos | Bearer", "GET",
+    f"{BASE}/v1/creditosAtivos", extra_headers=auth)
+
+# 6) corpo JSON no GET /v1/buscar
+test("GET /v1/buscar body JSON", "GET", f"{BASE}/v1/buscar",
+    body=PAYLOAD, extra_headers=auth)
