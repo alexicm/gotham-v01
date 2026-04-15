@@ -16,29 +16,67 @@ interface Props {
 }
 
 const NEOFETCH = [
-  { type: 'amber' as const, text: '   ██████╗███╗   ██╗ █████╗ ███████╗' },
-  { type: 'amber' as const, text: '  ██╔════╝████╗  ██║██╔══██╗██╔════╝' },
-  { type: 'amber' as const, text: '  ██║     ██╔██╗ ██║███████║█████╗  ' },
-  { type: 'amber' as const, text: '  ██║     ██║╚██╗██║██╔══██║██╔══╝  ' },
-  { type: 'amber' as const, text: '  ╚██████╗██║ ╚████║██║  ██║███████╗' },
-  { type: 'amber' as const, text: '   ╚═════╝╚═╝  ╚═══╝╚═╝  ╚═╝╚══════╝' },
-  { type: 'dim' as const,   text: '  ────────────────────────────────────' },
-  { type: 'output' as const, text: '  OS:       Gotham Search v1.0.0' },
-  { type: 'output' as const, text: '  API:      Lista CNAE + BrasilAPI CNPJ' },
-  { type: 'output' as const, text: '  Kernel:   Next.js 16 / React 19' },
-  { type: 'output' as const, text: '  Shell:    cnae-shell 1.0' },
-  { type: 'dim' as const,   text: '  ────────────────────────────────────' },
+  { type: 'amber' as const, text: '  ██████╗  ██████╗ ████████╗██╗  ██╗ █████╗ ███╗   ███╗' },
+  { type: 'amber' as const, text: ' ██╔════╝ ██╔═══██╗╚══██╔══╝██║  ██║██╔══██╗████╗ ████║' },
+  { type: 'amber' as const, text: ' ██║  ███╗██║   ██║   ██║   ███████║███████║██╔████╔██║' },
+  { type: 'amber' as const, text: ' ██║   ██║██║   ██║   ██║   ██╔══██║██╔══██║██║╚██╔╝██║' },
+  { type: 'amber' as const, text: ' ╚██████╔╝╚██████╔╝   ██║   ██║  ██║██║  ██║██║ ╚═╝ ██║' },
+  { type: 'amber' as const, text: '  ╚═════╝  ╚═════╝    ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝     ╚═╝' },
+  { type: 'dim' as const,   text: '  ──────────────────────────────────────────────────────' },
+  { type: 'output' as const, text: '  OS:       Gotham v1.0.0' },
+  { type: 'output' as const, text: '  Modulos:  Busca · CNPJ · Admin' },
+  { type: 'output' as const, text: '  Kernel:   Next.js 14 / React 18' },
+  { type: 'output' as const, text: '  Shell:    gotham-shell 1.0' },
+  { type: 'dim' as const,   text: '  ──────────────────────────────────────────────────────' },
 ]
 
-const HELP: Line[] = [
-  { type: 'amber', text: 'Comandos disponiveis:' },
-  { type: 'output', text: '  buscar --cnae=<cod> [--uf=<UF>] [--municipio=<nome>] [--porte=ME|EPP|DEMAIS] [--n=50]' },
-  { type: 'output', text: '  ficha <cnpj>        -- consulta ficha completa de um CNPJ' },
-  { type: 'output', text: '  janela busca        -- abre a janela de busca visual' },
-  { type: 'output', text: '  neofetch            -- informacoes do sistema' },
-  { type: 'output', text: '  limpar              -- limpa o terminal' },
-  { type: 'output', text: '  ajuda               -- exibe esta mensagem' },
+const HELP_GERAL: Line[] = [
+  { type: 'amber', text: 'Comandos disponíveis:' },
+  { type: 'output', text: '  buscar  --cnae=<cod> [--uf=UF] [--municipio=nome] [--porte=ME|EPP|DEMAIS]' },
+  { type: 'output', text: '          [--n=25] [--simples=S|N] [--mei=S|N]' },
+  { type: 'output', text: '  ficha   <cnpj>      — ficha completa de um CNPJ' },
+  { type: 'output', text: '  historico [--n=10]  — suas últimas N buscas' },
+  { type: 'output', text: '  stats               — total de buscas e resultados' },
+  { type: 'output', text: '  exportar            — baixa últimos resultados como CSV' },
+  { type: 'output', text: '  janela busca        — abre a janela de busca visual' },
+  { type: 'output', text: '  neofetch            — informações do sistema' },
+  { type: 'output', text: '  limpar | cls        — limpa o terminal' },
+  { type: 'output', text: '  help [comando]      — esta mensagem ou ajuda detalhada' },
 ]
+
+const HELP_DETALHE: Record<string, Line[]> = {
+  buscar: [
+    { type: 'amber', text: 'buscar — Busca empresas por CNAE' },
+    { type: 'output', text: '  --cnae=<cod>        CNAE principal (obrigatório). Ex: 6201500' },
+    { type: 'output', text: '                      Múltiplos: --cnae=6201500,6202300' },
+    { type: 'output', text: '  --uf=<UF>           Filtro por estado. Ex: --uf=SP' },
+    { type: 'output', text: '  --municipio=<nome>  Filtro por município. Ex: --municipio=Campinas' },
+    { type: 'output', text: '  --porte=<porte>     ME | EPP | DEMAIS' },
+    { type: 'output', text: '  --n=<qtd>           Quantidade de resultados (padrão 25, máx 100)' },
+    { type: 'output', text: '  --simples=S|N       Filtro Simples Nacional' },
+    { type: 'output', text: '  --mei=S|N           Filtro MEI' },
+  ],
+  ficha: [
+    { type: 'amber', text: 'ficha — Consulta dados completos de um CNPJ' },
+    { type: 'output', text: '  Uso: ficha <cnpj>' },
+    { type: 'output', text: '  Ex:  ficha 11.222.333/0001-44' },
+    { type: 'output', text: '  Exibe CNPJ, situação, CNAE, endereço, capital e e-mail.' },
+  ],
+  historico: [
+    { type: 'amber', text: 'historico — Lista suas últimas buscas' },
+    { type: 'output', text: '  Uso: historico [--n=10]' },
+    { type: 'output', text: '  --n=<qtd>  Número de buscas a exibir (padrão 10, máx 50)' },
+  ],
+  stats: [
+    { type: 'amber', text: 'stats — Estatísticas de uso' },
+    { type: 'output', text: '  Exibe: total de buscas, total de empresas encontradas, data da primeira busca.' },
+  ],
+  exportar: [
+    { type: 'amber', text: 'exportar — Exporta últimos resultados como CSV' },
+    { type: 'output', text: '  Execute buscar primeiro para ter resultados. O CSV inclui:' },
+    { type: 'output', text: '  cnpj, razaoSocial, nomeFantasia, uf, municipio, cnae' },
+  ],
+}
 
 function parseArgs(tokens: string[]): Record<string, string> {
   const args: Record<string, string> = {}
@@ -57,7 +95,7 @@ export function CnaeTerminalWindow({ onAbrirBusca, onResultados, onAbrirFicha }:
   const [lines, setLines] = useState<Line[]>([
     ...NEOFETCH,
     { type: 'dim', text: '' },
-    { type: 'output', text: 'Digite "ajuda" para ver os comandos.' },
+    { type: 'output', text: 'Digite "help" para ver os comandos.' },
     { type: 'dim', text: '' },
   ])
   const [input, setInput] = useState('')
@@ -175,7 +213,12 @@ export function CnaeTerminalWindow({ onAbrirBusca, onResultados, onAbrirFicha }:
     const args = parseArgs(tokens)
 
     if (command === 'ajuda' || command === 'help') {
-      addLines(HELP)
+      const sub = tokens[0]?.toLowerCase()
+      if (sub && HELP_DETALHE[sub]) {
+        addLines(HELP_DETALHE[sub])
+      } else {
+        addLines(HELP_GERAL)
+      }
     } else if (command === 'neofetch') {
       addLines(NEOFETCH)
     } else if (command === 'limpar' || command === 'clear') {
@@ -194,7 +237,7 @@ export function CnaeTerminalWindow({ onAbrirBusca, onResultados, onAbrirFicha }:
         addLines([{ type: 'error', text: `Janela desconhecida: ${sub}` }])
       }
     } else {
-      addLines([{ type: 'error', text: `Comando nao reconhecido: "${command}". Digite "ajuda".` }])
+      addLines([{ type: 'error', text: `Comando não reconhecido: "${command}". Digite "help".` }])
     }
 
     addLines([{ type: 'dim', text: '' }])
