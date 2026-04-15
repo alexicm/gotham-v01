@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import type { EmpresaBrasilAPI, Empresa } from '@/types/empresa'
+import { createAdminClient } from '@/lib/supabase/server'
 
 export async function GET(
   _req: NextRequest,
@@ -11,6 +12,20 @@ export async function GET(
   if (digits.length !== 14) {
     return NextResponse.json({ error: 'CNPJ inválido' }, { status: 400 })
   }
+
+  // ─ Verificar cache Supabase ─
+  try {
+    const adminClient = await createAdminClient()
+    const { data: cached } = await adminClient
+      .from('cache_empresas')
+      .select('dados, expira_em')
+      .eq('cnpj', digits)
+      .single()
+
+    if (cached && new Date(cached.expira_em) > new Date()) {
+      return NextResponse.json(cached.dados)
+    }
+  } catch { /* cache miss — continua para BrasilAPI */ }
 
   try {
     const res = await fetch(
@@ -64,6 +79,17 @@ export async function GET(
             naturezaJuridica: altRaw.natureza_juridica,
             socios: altRaw.qsa,
           }
+          // Gravar no cache (7 dias de validade)
+          try {
+            const adminClient = await createAdminClient()
+            await adminClient.from('cache_empresas').upsert({
+              cnpj: digits,
+              dados: empresa,
+              fonte: 'receitaws',
+              atualizado_em: new Date().toISOString(),
+              expira_em: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+            }, { onConflict: 'cnpj' })
+          } catch { /* falha silenciosa */ }
           return NextResponse.json(empresa)
         }
       }
@@ -105,6 +131,18 @@ export async function GET(
       cnaesSecundarios: raw.cnaes_secundarios,
       socios: raw.qsa,
     }
+
+    // Gravar no cache (7 dias de validade)
+    try {
+      const adminClient = await createAdminClient()
+      await adminClient.from('cache_empresas').upsert({
+        cnpj: digits,
+        dados: empresa,
+        fonte: 'brasilapi',
+        atualizado_em: new Date().toISOString(),
+        expira_em: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      }, { onConflict: 'cnpj' })
+    } catch { /* falha silenciosa */ }
 
     return NextResponse.json(empresa)
   } catch (err) {

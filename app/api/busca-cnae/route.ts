@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import type { Empresa, BuscaResult } from '@/types/empresa'
+import { createAdminClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -118,6 +120,21 @@ export async function POST(req: NextRequest) {
       pagina: paginaAtual,
       ultimaPagina,
     }
+
+    // Gravar histórico em background (não bloqueia a resposta)
+    try {
+      const supabase = await createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const adminClient = await createAdminClient()
+        await adminClient.from('historico_buscas').insert({
+          usuario_id: user.id,
+          cnaes: cnaes.map(String),
+          params: body,
+          total_resultados: result.total,
+        })
+      }
+    } catch { /* falha silenciosa — não prejudica a busca */ }
 
     return NextResponse.json(result)
   } catch (err) {
