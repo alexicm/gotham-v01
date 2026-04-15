@@ -2,6 +2,8 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient, createClient } from '@/lib/supabase/server'
 
+const NIVEIS_VALIDOS = ['admin', 'agente'] as const
+
 async function verificarAdmin() {
   const clientNormal = await createClient()
   const { data: { user } } = await clientNormal.auth.getUser()
@@ -18,7 +20,6 @@ async function verificarAdmin() {
   return user
 }
 
-// GET /api/admin/usuarios — lista todos os usuários
 export async function GET() {
   const adminUser = await verificarAdmin()
   if (!adminUser) {
@@ -35,26 +36,41 @@ export async function GET() {
   return NextResponse.json({ usuarios: perfis })
 }
 
-// POST /api/admin/usuarios — criar novo usuário
 export async function POST(request: Request) {
   const adminUser = await verificarAdmin()
   if (!adminUser) {
     return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
   }
 
-  const body = await request.json()
-  const { nome, cpf, codigo, nivel, modulosPermitidos } = body
+  let body: Record<string, unknown>
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ error: 'Body JSON inválido' }, { status: 400 })
+  }
+
+  const { nome, cpf, codigo, nivel, modulosPermitidos } = body as Record<string, string>
 
   if (!nome || !cpf || !codigo || !nivel) {
     return NextResponse.json({ error: 'Campos obrigatórios: nome, cpf, codigo, nivel' }, { status: 400 })
   }
 
-  const cpfDigits = cpf.replace(/\D/g, '')
-  const email = `${cpfDigits}@gotham.app`
+  const cpfDigits = String(cpf).replace(/\D/g, '')
+  if (cpfDigits.length !== 11) {
+    return NextResponse.json({ error: 'CPF deve ter 11 dígitos' }, { status: 400 })
+  }
 
+  if (String(codigo).length < 4) {
+    return NextResponse.json({ error: 'Código de acesso deve ter no mínimo 4 caracteres' }, { status: 400 })
+  }
+
+  if (!NIVEIS_VALIDOS.includes(nivel as typeof NIVEIS_VALIDOS[number])) {
+    return NextResponse.json({ error: `Nível inválido. Use: ${NIVEIS_VALIDOS.join(', ')}` }, { status: 400 })
+  }
+
+  const email = `${cpfDigits}@gotham.app`
   const supabase = await createAdminClient()
 
-  // Criar usuário no Supabase Auth
   const { data: authData, error: authError } = await supabase.auth.admin.createUser({
     email,
     password: codigo,
@@ -65,7 +81,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: authError.message }, { status: 400 })
   }
 
-  // Inserir perfil
   const { error: perfilError } = await supabase
     .from('perfis')
     .insert({
@@ -80,10 +95,12 @@ export async function POST(request: Request) {
     })
 
   if (perfilError) {
-    // Rollback: remover usuário do auth se perfil falhou
-    await supabase.auth.admin.deleteUser(authData.user.id)
+    const { error: rollbackError } = await supabase.auth.admin.deleteUser(authData.user.id)
+    if (rollbackError) {
+      console.error('[admin/usuarios] Rollback falhou após erro de perfil:', rollbackError.message)
+    }
     return NextResponse.json({ error: perfilError.message }, { status: 500 })
   }
 
-  return NextResponse.json({ ok: true, id: authData.user.id })
+  return NextResponse.json({ ok: true, id: authData.user.id }, { status: 201 })
 }
