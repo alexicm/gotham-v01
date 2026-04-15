@@ -1,9 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Building2, MapPin, Users, Briefcase, Download, RefreshCw } from 'lucide-react'
+import { Building2, MapPin, Users, Briefcase, Download, RefreshCw, MessageCircle } from 'lucide-react'
 import type { Empresa } from '@/types/empresa'
 import { formatCNPJ, formatCapital, formatDate, situacaoColor, exportCSV } from '@/lib/formatters'
+import { WhatsAppModal } from '@/components/WhatsAppModal'
+import { getWhatsAppNumbers, setWhatsAppNumber } from '@/lib/whatsapp'
 
 interface Props {
   cnpj: string
@@ -86,6 +88,11 @@ export function FichaWindow({ cnpj, empresaBase }: Props) {
   const [empresa, setEmpresa] = useState<Empresa | null>(empresaBase ?? null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [isWa, setIsWa] = useState<boolean>(() => {
+    const digits = cnpj.replace(/\D/g, '')
+    return getWhatsAppNumbers()[digits] ?? false
+  })
+  const [showWaModal, setShowWaModal] = useState(false)
 
   async function fetchFicha() {
     setLoading(true)
@@ -97,7 +104,12 @@ export function FichaWindow({ cnpj, empresaBase }: Props) {
       if (!res.ok) {
         setError(data.error ?? 'Erro ao buscar CNPJ.')
       } else {
-        setEmpresa(data)
+        // Preservar telefone e e-mail do empresaBase (Lista CNAE) se a BrasilAPI não trouxer
+        setEmpresa({
+          ...data,
+          telefone: data.telefone || empresaBase?.telefone,
+          email: data.email || empresaBase?.email,
+        })
       }
     } catch {
       setError('Falha na conexao com a API.')
@@ -286,7 +298,57 @@ export function FichaWindow({ cnpj, empresaBase }: Props) {
             <section>
               <SectionHeader icon={<Briefcase size={14} color="#d97706" />} title="Contato" />
               <InfoRow label="E-mail" value={empresa.email} />
-              <InfoRow label="Telefone" value={empresa.telefone} />
+              <InfoRow
+                label="Telefone"
+                value={
+                  empresa.telefone ? (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                      <span style={{ fontFamily: 'monospace' }}>{empresa.telefone}</span>
+                      <button
+                        onClick={() => {
+                          const digits = cnpj.replace(/\D/g, '')
+                          const next = !isWa
+                          setIsWa(next)
+                          setWhatsAppNumber(digits, next)
+                        }}
+                        title={isWa ? 'Remover marcação WhatsApp' : 'Marcar como WhatsApp'}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          padding: 2,
+                          display: 'flex',
+                          color: isWa ? '#25d366' : '#c8b888',
+                          transition: 'color 0.15s',
+                        }}
+                      >
+                        <MessageCircle size={15} />
+                      </button>
+                      {isWa && (
+                        <button
+                          onClick={() => setShowWaModal(true)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 4,
+                            padding: '3px 10px',
+                            background: '#25d366',
+                            border: 'none',
+                            borderRadius: 6,
+                            fontSize: 11,
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            color: '#fff',
+                            fontFamily: 'inherit',
+                          }}
+                        >
+                          <MessageCircle size={11} /> Enviar mensagem
+                        </button>
+                      )}
+                    </span>
+                  ) : undefined
+                }
+              />
             </section>
 
             {/* CNAEs Secundarios */}
@@ -364,6 +426,14 @@ export function FichaWindow({ cnpj, empresaBase }: Props) {
           </div>
         )}
       </div>
+
+      {showWaModal && empresa?.telefone && (
+        <WhatsAppModal
+          telefone={empresa.telefone}
+          nomeEmpresa={empresa.nomeFantasia || empresa.razaoSocial}
+          onClose={() => setShowWaModal(false)}
+        />
+      )}
     </div>
   )
 }

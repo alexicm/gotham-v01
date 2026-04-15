@@ -1,9 +1,11 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { FileText, Download, ChevronUp, ChevronDown, Search } from 'lucide-react'
+import { FileText, Download, ChevronUp, ChevronDown, Search, MessageCircle } from 'lucide-react'
 import type { Empresa, BuscaResult } from '@/types/empresa'
 import { formatCNPJ, formatCapital, situacaoColor, exportCSV, exportJSON } from '@/lib/formatters'
+import { WhatsAppModal } from '@/components/WhatsAppModal'
+import { getWhatsAppNumbers, setWhatsAppNumber } from '@/lib/whatsapp'
 
 interface Props {
   resultado: BuscaResult
@@ -15,7 +17,7 @@ interface Props {
   buscaParams?: import('@/types/empresa').BuscaParams
 }
 
-type SortKey = 'razaoSocial' | 'municipio' | 'uf' | 'porte' | 'capitalSocial' | 'situacao'
+type SortKey = 'razaoSocial' | 'municipio' | 'uf' | 'porte' | 'capitalSocial' | 'situacao' | 'telefone' | 'email'
 
 // ─── Card view (mobile) ───────────────────────────────────────────────────────
 
@@ -102,6 +104,16 @@ function EmpresaCard({
             Capital: <strong style={{ color: '#2c2416', fontFamily: 'monospace' }}>{formatCapital(empresa.capitalSocial)}</strong>
           </span>
         )}
+        {empresa.telefone && (
+          <span>
+            Tel: <strong style={{ color: '#2c2416', fontFamily: 'monospace' }}>{empresa.telefone}</strong>
+          </span>
+        )}
+        {empresa.email && (
+          <span style={{ wordBreak: 'break-all' }}>
+            <strong style={{ color: '#2c2416' }}>{empresa.email}</strong>
+          </span>
+        )}
       </div>
 
       <button
@@ -184,6 +196,15 @@ export function ResultadosWindow({ resultado, onAbrirFicha, onPaginar, loadingPa
   const [filtro, setFiltro] = useState('')
   const [sortKey, setSortKey] = useState<SortKey>('razaoSocial')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
+  const [waNumbers, setWaNumbers] = useState<Record<string, boolean>>(() => getWhatsAppNumbers())
+  const [waModal, setWaModal] = useState<{ telefone: string; nomeEmpresa: string } | null>(null)
+
+  function toggleWa(cnpj: string, e: React.MouseEvent) {
+    e.stopPropagation()
+    const next = !waNumbers[cnpj]
+    setWhatsAppNumber(cnpj, next)
+    setWaNumbers(prev => ({ ...prev, [cnpj]: next }))
+  }
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -352,6 +373,8 @@ export function ResultadosWindow({ resultado, onAbrirFicha, onPaginar, loadingPa
                         { k: 'porte', label: 'Porte' },
                         { k: 'capitalSocial', label: 'Capital' },
                         { k: 'situacao', label: 'Situacao' },
+                        { k: 'telefone', label: 'Telefone' },
+                        { k: 'email', label: 'E-mail' },
                       ] as { k: SortKey; label: string }[]
                     ).map(({ k, label }) => (
                       <th key={k} style={thStyle} onClick={() => handleSort(k)}>
@@ -406,6 +429,60 @@ export function ResultadosWindow({ resultado, onAbrirFicha, onPaginar, loadingPa
                             {enrichedMap?.get(empresa.cnpj)?.situacao ?? empresa.situacao}
                           </span>
                         )}
+                      </td>
+                      <td
+                        style={{ ...tdStyle, fontSize: 11, whiteSpace: 'nowrap' }}
+                        onClick={e => e.stopPropagation()}
+                      >
+                        {empresa.telefone ? (
+                          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <span style={{ fontFamily: 'monospace' }}>{empresa.telefone}</span>
+                            <button
+                              onClick={e => toggleWa(empresa.cnpj, e)}
+                              title={waNumbers[empresa.cnpj] ? 'Remover marcação WhatsApp' : 'Marcar como WhatsApp'}
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                cursor: 'pointer',
+                                padding: 2,
+                                display: 'flex',
+                                color: waNumbers[empresa.cnpj] ? '#25d366' : '#c8b888',
+                                transition: 'color 0.15s',
+                              }}
+                            >
+                              <MessageCircle size={13} />
+                            </button>
+                            {waNumbers[empresa.cnpj] && (
+                              <button
+                                onClick={e => {
+                                  e.stopPropagation()
+                                  setWaModal({ telefone: empresa.telefone!, nomeEmpresa: empresa.nomeFantasia || empresa.razaoSocial })
+                                }}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 3,
+                                  padding: '2px 8px',
+                                  background: '#25d366',
+                                  border: 'none',
+                                  borderRadius: 5,
+                                  fontSize: 10,
+                                  fontWeight: 700,
+                                  cursor: 'pointer',
+                                  color: '#fff',
+                                  fontFamily: 'inherit',
+                                }}
+                              >
+                                <MessageCircle size={10} /> Enviar
+                              </button>
+                            )}
+                          </span>
+                        ) : (
+                          <span style={{ color: '#c8b888' }}>—</span>
+                        )}
+                      </td>
+                      <td style={{ ...tdStyle, fontSize: 11, maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {empresa.email ?? <span style={{ color: '#c8b888' }}>—</span>}
                       </td>
                       <td style={tdStyle}>
                         <button
@@ -482,6 +559,14 @@ export function ResultadosWindow({ resultado, onAbrirFicha, onPaginar, loadingPa
             </button>
           </div>
         </div>
+      )}
+
+      {waModal && (
+        <WhatsAppModal
+          telefone={waModal.telefone}
+          nomeEmpresa={waModal.nomeEmpresa}
+          onClose={() => setWaModal(null)}
+        />
       )}
     </div>
   )
