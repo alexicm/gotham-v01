@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { useEnrichment } from '@/hooks/useEnrichment'
 import {
   Search, Terminal, FileText, Building2, Clock, BarChart2,
-  X, Minus, Maximize2, GripVertical, LogOut, ShieldCheck
+  X, Minus, Maximize2, GripVertical, LogOut, ShieldCheck, User
 } from 'lucide-react'
 import { BuscaWindow } from './windows/BuscaWindow'
 import { ResultadosWindow } from './windows/ResultadosWindow'
@@ -12,6 +12,7 @@ import { FichaWindow } from './windows/FichaWindow'
 import { CnaeTerminalWindow } from './windows/CnaeTerminalWindow'
 import { AdminWindow } from './windows/AdminWindow'
 import { CnpjWindow } from './windows/CnpjWindow'
+import { PerfilWindow } from './windows/PerfilWindow'
 import { MobileLayout } from './MobileLayout'
 import { TerminalPasswordGate } from './TerminalPasswordGate'
 import { usePermissoes } from '@/hooks/usePermissoes'
@@ -586,6 +587,17 @@ function CnaeDesktopOS({ onLogout }: { onLogout?: () => void }) {
     })
   }, [upsertWindow])
 
+  // ─ Open Perfil ─
+  const openPerfil = useCallback(() => {
+    upsertWindow('perfil', {
+      title: 'perfil.sys',
+      icon: <User size={13} color="#d97706" />,
+      width: 560,
+      height: 520,
+      content: <PerfilWindow />,
+    })
+  }, [upsertWindow])
+
   // Keep refs up-to-date
   useEffect(() => { openResultadosRef.current = openResultados }, [openResultados])
   useEffect(() => { openFichaRef.current = openFicha }, [openFicha])
@@ -632,6 +644,7 @@ function CnaeDesktopOS({ onLogout }: { onLogout?: () => void }) {
             { label: 'Busca', fn: openBusca, icon: <Search size={11} />, modulo: 'busca' as const },
             { label: 'Terminal', fn: openTerminalComGate, icon: <Terminal size={11} />, modulo: 'terminal' as const },
             { label: 'CNPJ', fn: openCnpj, icon: <Search size={11} />, modulo: 'cnpj' as const },
+            { label: 'Perfil', fn: openPerfil, icon: <User size={11} />, modulo: 'busca' as const },
             ...(nivel === 'admin' ? [{ label: 'Admin', fn: openAdmin, icon: <ShieldCheck size={11} />, modulo: 'admin' as const }] : []),
           ].filter(item => podeAcessar(item.modulo)).map(item => (
             <button
@@ -715,6 +728,9 @@ function CnaeDesktopOS({ onLogout }: { onLogout?: () => void }) {
         )}
         {nivel === 'admin' && (
           <DesktopIcon label="admin_panel" icon={<ShieldCheck size={20} color="#d97706" />} onClick={openAdmin} />
+        )}
+        {podeAcessar('busca') && (
+          <DesktopIcon label="perfil.sys" icon={<User size={20} color="#d97706" />} onClick={openPerfil} />
         )}
       </div>
 
