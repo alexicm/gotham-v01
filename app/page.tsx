@@ -4,6 +4,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import { LoginScreen } from '@/components/LoginScreen'
+import { LoadingScreen } from '@/components/LoadingScreen'
 import { createClient } from '@/lib/supabase/client'
 
 const CnaeDesktop = dynamic(
@@ -12,17 +13,23 @@ const CnaeDesktop = dynamic(
 )
 
 export default function Home() {
-  const [autenticado, setAutenticado] = useState<boolean | null>(null) // null = carregando
+  const [autenticado, setAutenticado] = useState<boolean | null>(null)
+  const [timerDone, setTimerDone] = useState(false)
 
+  // Timer mínimo de 3 segundos
+  useEffect(() => {
+    const timer = setTimeout(() => setTimerDone(true), 3000)
+    return () => clearTimeout(timer)
+  }, [])
+
+  // Verificação de sessão
   useEffect(() => {
     const supabase = createClient()
 
-    // Verificar sessão atual
     supabase.auth.getUser().then(({ data: { user } }) => {
       setAutenticado(!!user)
     })
 
-    // Ouvir mudanças de sessão
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setAutenticado(!!session?.user)
     })
@@ -37,14 +44,9 @@ export default function Home() {
     setAutenticado(false)
   }, [])
 
-  // Tela de carregamento durante verificação de sessão
-  if (autenticado === null) {
-    return (
-      <div style={{ position: 'fixed', inset: 0, background: '#d4c4a8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ width: 20, height: 20, border: '3px solid #c8b888', borderTopColor: '#fbbf24', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
-        <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
-      </div>
-    )
+  // Mostrar loading enquanto timer não acabou OU sessão não foi verificada
+  if (!timerDone || autenticado === null) {
+    return <LoadingScreen />
   }
 
   return autenticado
