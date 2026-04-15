@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { useEnrichment } from '@/hooks/useEnrichment'
 import {
   Search, Terminal, FileText, Building2, Clock, BarChart2,
   X, Minus, Maximize2, GripVertical, LogOut
@@ -269,10 +270,16 @@ function ResultadosDesktopWrapper({
   resultado: initialResultado,
   onAbrirFicha,
   onPaginar,
+  enrichedMap,
+  enrichingCnpjs,
+  buscaParams,
 }: {
   resultado: BuscaResult
   onAbrirFicha: (empresa: Empresa) => void
   onPaginar: (pagina: number) => Promise<void>
+  enrichedMap?: Map<string, Empresa>
+  enrichingCnpjs?: Set<string>
+  buscaParams?: BuscaParams
 }) {
   const [resultado, setResultado] = useState(initialResultado)
   const [loading, setLoading] = useState(false)
@@ -297,6 +304,9 @@ function ResultadosDesktopWrapper({
       onAbrirFicha={onAbrirFicha}
       loadingPagina={loading}
       onPaginar={handlePaginar}
+      enrichedMap={enrichedMap}
+      enrichingCnpjs={enrichingCnpjs}
+      buscaParams={buscaParams}
     />
   )
 }
@@ -305,6 +315,7 @@ function CnaeDesktopOS({ onLogout }: { onLogout?: () => void }) {
   const [windows, setWindows] = useState<OsWindow[]>([])
   const [lastResult, setLastResult] = useState<BuscaResult | null>(null)
   const [lastParams, setLastParams] = useState<BuscaParams | null>(null)
+  const { enrich, enrichedMap, enrichingCnpjs } = useEnrichment()
   const [clock, setClock] = useState('')
   // zTop como ref para evitar reset no hot-reload e conflitos entre renders
   const zTopRef = useRef(100)
@@ -383,17 +394,36 @@ function CnaeDesktopOS({ onLogout }: { onLogout?: () => void }) {
 
   // ─ Open Resultados ─
   const openResultados = useCallback((result: BuscaResult, params: BuscaParams) => {
+    // Disparar enriquecimento em background
+    enrich(result.empresas)
+
     const paginar = async (pagina: number) => {
       const p = lastParamsRef.current
       if (!p) return
       const cnaes = (p.cnae ?? '').split(/[,\s]+/).map(c => parseInt(c.replace(/\D/g, ''), 10)).filter(Boolean)
       const porPagina = p.porPagina ?? 50
+
       const payload: Record<string, unknown> = {
         cnaes,
         inicio: (pagina - 1) * porPagina,
         quantidade: porPagina,
       }
       if (p.uf) payload.estados = [p.uf.toUpperCase()]
+      if (p.cnpjs) payload.cnpjs = p.cnpjs.split(/[,\s]+/).map(s => s.trim()).filter(Boolean)
+      if (p.termosBusca) payload.termos_busca = p.termosBusca.split(',').map(t => ({ termo: t.trim(), tipo: p.termoBuscaEm ?? 'A' }))
+      if (p.incluirCnaesSecundarios) payload.incluir_cnaes_secundarios = true
+      if (p.somenteMatrizes) payload.somente_matrizes = true
+      if (p.capitalSocialMinimo) payload.capital_social_minimo = p.capitalSocialMinimo
+      if (p.capitalSocialMaximo) payload.capital_social_maximo = p.capitalSocialMaximo
+      if (p.simplesNacional === 'apenas') payload.simples_nacional = true
+      if (p.simplesNacional === 'excluir') payload.simples_nacional = false
+      if (p.mei === 'apenas') payload.mei = true
+      if (p.mei === 'excluir') payload.mei = false
+      if (p.telefoneObrigatorio) payload.telefone_obrigatorio = true
+      if (p.emailObrigatorio) payload.email_obrigatorio = true
+      if (p.dataInicio) payload.data_inicio = p.dataInicio
+      if (p.dataFim) payload.data_fim = p.dataFim
+
       const res = await fetch('/api/busca-cnae', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -401,6 +431,7 @@ function CnaeDesktopOS({ onLogout }: { onLogout?: () => void }) {
       })
       const data: BuscaResult = await res.json()
       setLastResult(data)
+      enrich(data.empresas)
       openResultadosRef.current(data, lastParamsRef.current ?? p)
     }
 
@@ -414,10 +445,13 @@ function CnaeDesktopOS({ onLogout }: { onLogout?: () => void }) {
           resultado={result}
           onAbrirFicha={(empresa: Empresa) => openFichaRef.current(empresa.cnpj, empresa)}
           onPaginar={paginar}
+          enrichedMap={enrichedMap}
+          enrichingCnpjs={enrichingCnpjs}
+          buscaParams={params}
         />
       ),
     })
-  }, [upsertWindow])
+  }, [upsertWindow, enrich, enrichedMap, enrichingCnpjs])
 
   // ─ Open Busca ─
   const openBusca = useCallback(() => {
