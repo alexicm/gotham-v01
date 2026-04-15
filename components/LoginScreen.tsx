@@ -114,7 +114,7 @@ export function LoginScreen({ onLogin }: Props) {
                 ref={cpfRef} autoComplete="username" />
             </div>
             <div style={styles.field}>
-              <label style={styles.label}>CÓDIGO DE ACESSO</label>
+              <label style={styles.label}>CÓDIGO DE ACESSO MASTER</label>
               <div style={styles.inputWrap}>
                 <input ref={codigoRef} type={showCodigo ? 'text' : 'password'}
                   inputMode="numeric" placeholder="••••••" value={codigo}
