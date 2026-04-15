@@ -11,15 +11,19 @@ ALTER TABLE public.perfis
   ADD COLUMN IF NOT EXISTS modulos_permitidos text[] NOT NULL
     DEFAULT ARRAY['busca', 'cnpj'];
 
+-- ─── Lógica de acesso ──────────────────────────────────────────────────────────
+-- Usuários normais (agente): leem e atualizam apenas o próprio perfil
+-- Admins: leem e atualizam qualquer perfil
+-- INSERT: feito exclusivamente pelo service_role nas rotas /api/admin (sem policy necessária)
+-- A coluna modulos_permitidos lista módulos permitidos ao usuário; validação na aplicação.
+-- ──────────────────────────────────────────────────────────────────────────────
+
 -- SELECT: próprio perfil OU admin pode ver todos
 CREATE POLICY "perfil_select"
   ON public.perfis FOR SELECT
   USING (
     auth.uid() = id
-    OR EXISTS (
-      SELECT 1 FROM public.perfis p2
-      WHERE p2.id = auth.uid() AND p2.nivel = 'admin'
-    )
+    OR (SELECT nivel FROM public.perfis WHERE id = auth.uid() LIMIT 1) = 'admin'
   );
 
 -- UPDATE: próprio perfil OU admin pode atualizar todos
@@ -27,22 +31,22 @@ CREATE POLICY "perfil_update"
   ON public.perfis FOR UPDATE
   USING (
     auth.uid() = id
-    OR EXISTS (
-      SELECT 1 FROM public.perfis p2
-      WHERE p2.id = auth.uid() AND p2.nivel = 'admin'
-    )
+    OR (SELECT nivel FROM public.perfis WHERE id = auth.uid() LIMIT 1) = 'admin'
   )
   WITH CHECK (
     auth.uid() = id
-    OR EXISTS (
-      SELECT 1 FROM public.perfis p2
-      WHERE p2.id = auth.uid() AND p2.nivel = 'admin'
-    )
+    OR (SELECT nivel FROM public.perfis WHERE id = auth.uid() LIMIT 1) = 'admin'
   );
 
--- ─── MANUAL STEP REQUIRED ────────────────────────────────────────────────────────
--- Após aplicar esta migração no Supabase Dashboard, execute o comando abaixo no SQL Editor
--- para promover o usuário inicial a admin:
+-- DELETE: apenas admins podem deletar perfis
+CREATE POLICY "perfil_delete"
+  ON public.perfis FOR DELETE
+  USING (
+    (SELECT nivel FROM public.perfis WHERE id = auth.uid() LIMIT 1) = 'admin'
+  );
+
+-- ─── PASSO MANUAL OBRIGATÓRIO ─────────────────────────────────────────────────
+-- Após aplicar esta migração no Supabase Dashboard > SQL Editor, execute:
 --
 -- UPDATE public.perfis
 -- SET nivel = 'admin',
