@@ -34,6 +34,7 @@ export interface Socio {
   identificador_de_socio: number
   nome_socio: string
   cnpj_cpf_do_socio: string
+  qualificacao_socio: string
   codigo_qualificacao_socio: number
   percentual_capital_social: number
   data_entrada_sociedade: string
