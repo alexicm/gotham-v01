@@ -72,8 +72,9 @@ export function PerfilWindow() {
   const [sucesso, setSucesso] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const carregarPerfil = useCallback(async () => {
-    const res = await fetch('/api/perfil')
+  const carregarPerfil = useCallback(async (signal?: AbortSignal) => {
+    const res = await fetch('/api/perfil', signal ? { signal } : undefined)
+    if (signal?.aborted) return
     if (!res.ok) return
     const data = await res.json()
     const p: PerfilData = data.perfil
@@ -83,16 +84,19 @@ export function PerfilWindow() {
     setFotoUrl(p.foto_url ?? null)
   }, [])
 
-  const carregarHistorico = useCallback(async () => {
-    const res = await fetch('/api/perfil/historico')
+  const carregarHistorico = useCallback(async (signal?: AbortSignal) => {
+    const res = await fetch('/api/perfil/historico', signal ? { signal } : undefined)
+    if (signal?.aborted) return
     if (!res.ok) return
     const data = await res.json()
     setHistorico(data.historico ?? [])
   }, [])
 
   useEffect(() => {
-    carregarPerfil()
-    carregarHistorico()
+    const controller = new AbortController()
+    carregarPerfil(controller.signal)
+    carregarHistorico(controller.signal)
+    return () => controller.abort()
   }, [carregarPerfil, carregarHistorico])
 
   async function handleFotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -127,18 +131,23 @@ export function PerfilWindow() {
       const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path)
       // Cache-bust para forçar reload da imagem
       const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`
-      setFotoUrl(publicUrl)
 
-      // Salva foto_url automaticamente
-      await fetch('/api/perfil', {
+      // Salva foto_url e só atualiza estado se bem-sucedido
+      const saveRes = await fetch('/api/perfil', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ foto_url: publicUrl }),
       })
+      if (!saveRes.ok) {
+        const d = await saveRes.json()
+        throw new Error(d.error ?? 'Falha ao salvar URL da foto')
+      }
+      setFotoUrl(publicUrl)
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Erro ao fazer upload')
     } finally {
       setUploadando(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
     }
   }
 
