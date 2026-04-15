@@ -104,6 +104,7 @@ export function CnaeTerminalWindow({ onAbrirBusca, onResultados, onAbrirFicha }:
   const [loading, setLoading] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const lastResultsRef = useRef<import('@/types/empresa').Empresa[]>([])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -135,6 +136,8 @@ export function CnaeTerminalWindow({ onAbrirBusca, onResultados, onAbrirFicha }:
       quantidade: parseInt(n, 10) || 25,
     }
     if (uf) payload.estados = [uf.toUpperCase()]
+    if (args['simples']) payload.opcao_pelo_simples = args['simples'].toUpperCase() === 'S'
+    if (args['mei']) payload.opcao_pelo_mei = args['mei'].toUpperCase() === 'S'
 
     try {
       const res = await fetch('/api/busca-cnae', {
@@ -158,6 +161,7 @@ export function CnaeTerminalWindow({ onAbrirBusca, onResultados, onAbrirFicha }:
           ...(empresas.length > 20 ? [{ type: 'dim' as const, text: `  ... e mais ${empresas.length - 20} resultados. Abra a janela de resultados.` }] : []),
           { type: 'dim', text: '─'.repeat(60) },
         ])
+        lastResultsRef.current = empresas
         onResultados?.({ empresas, total, pagina: data.pagina, ultimaPagina: data.ultimaPagina })
       }
     } catch {
@@ -202,6 +206,91 @@ export function CnaeTerminalWindow({ onAbrirBusca, onResultados, onAbrirFicha }:
     }
   }
 
+  async function handleHistorico(args: Record<string, string>) {
+    const n = args['n'] ?? '10'
+    addLines([{ type: 'dim', text: `Carregando últimas ${n} buscas...` }])
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/terminal/historico?n=${n}`)
+      const data: { historico?: Array<{ cnaes: string[]; total_resultados: number; criado_em: string }>; error?: string } = await res.json()
+      if (!res.ok) {
+        addLines([{ type: 'error', text: `Erro: ${data.error}` }])
+      } else if (!data.historico?.length) {
+        addLines([{ type: 'dim', text: 'Nenhuma busca encontrada.' }])
+      } else {
+        addLines([
+          { type: 'amber', text: `Últimas ${data.historico.length} buscas:` },
+          { type: 'dim', text: '─'.repeat(60) },
+          ...data.historico.map(h => ({
+            type: 'output' as const,
+            text: `  ${new Date(h.criado_em).toLocaleDateString('pt-BR')}  CNAE ${h.cnaes.join(', ')}  →  ${h.total_resultados.toLocaleString('pt-BR')} emp.`,
+          })),
+          { type: 'dim', text: '─'.repeat(60) },
+        ])
+      }
+    } catch {
+      addLines([{ type: 'error', text: 'Falha na conexão.' }])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleStats() {
+    addLines([{ type: 'dim', text: 'Carregando estatísticas...' }])
+    setLoading(true)
+    try {
+      const res = await fetch('/api/terminal/stats')
+      const data: { total_buscas?: number; total_resultados?: number; primeira_busca?: string | null; error?: string } = await res.json()
+      if (!res.ok) {
+        addLines([{ type: 'error', text: `Erro: ${data.error}` }])
+      } else {
+        const primeiraDt = data.primeira_busca
+          ? new Date(data.primeira_busca).toLocaleDateString('pt-BR')
+          : '—'
+        addLines([
+          { type: 'amber', text: 'Suas estatísticas:' },
+          { type: 'dim', text: '─'.repeat(40) },
+          { type: 'output', text: `  Buscas realizadas:    ${(data.total_buscas ?? 0).toLocaleString('pt-BR')}` },
+          { type: 'output', text: `  Empresas encontradas: ${(data.total_resultados ?? 0).toLocaleString('pt-BR')}` },
+          { type: 'output', text: `  Primeira busca:       ${primeiraDt}` },
+          { type: 'dim', text: '─'.repeat(40) },
+        ])
+      }
+    } catch {
+      addLines([{ type: 'error', text: 'Falha na conexão.' }])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  function handleExportar() {
+    const results = lastResultsRef.current
+    if (!results.length) {
+      addLines([{ type: 'error', text: 'Nenhum resultado para exportar. Execute "buscar" primeiro.' }])
+      return
+    }
+    const headers = 'cnpj,razaoSocial,nomeFantasia,uf,municipio,cnae'
+    const rows = results.map(e =>
+      [
+        e.cnpj,
+        `"${(e.razaoSocial ?? '').replace(/"/g, '""')}"`,
+        `"${(e.nomeFantasia ?? '').replace(/"/g, '""')}"`,
+        e.uf,
+        e.municipio,
+        e.cnae,
+      ].join(',')
+    )
+    const csv = [headers, ...rows].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `gotham-exportacao-${Date.now()}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+    addLines([{ type: 'success', text: `CSV exportado: ${results.length} empresas.` }])
+  }
+
   async function execute(cmd: string) {
     const trimmed = cmd.trim()
     if (!trimmed) return
@@ -221,13 +310,19 @@ export function CnaeTerminalWindow({ onAbrirBusca, onResultados, onAbrirFicha }:
       }
     } else if (command === 'neofetch') {
       addLines(NEOFETCH)
-    } else if (command === 'limpar' || command === 'clear') {
+    } else if (command === 'limpar' || command === 'clear' || command === 'cls') {
       setLines([])
     } else if (command === 'buscar' || command === 'search') {
       await handleBuscar(args)
     } else if (command === 'ficha') {
       const cnpj = tokens[0] ?? args['_'] ?? ''
       await handleFicha(cnpj)
+    } else if (command === 'historico') {
+      await handleHistorico(args)
+    } else if (command === 'stats') {
+      await handleStats()
+    } else if (command === 'exportar') {
+      handleExportar()
     } else if (command === 'janela' || command === 'open') {
       const sub = tokens[0]?.toLowerCase()
       if (sub === 'busca') {
