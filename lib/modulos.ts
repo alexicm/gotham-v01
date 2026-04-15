@@ -1,9 +1,9 @@
-export const MODULOS = ['busca', 'terminal', 'cnpj', 'admin'] as const
+export const MODULOS = ['busca', 'terminal', 'cnpj', 'admin', 'intelligence'] as const
 export type Modulo = typeof MODULOS[number]
 
 // Módulos padrão por nível
 export const MODULOS_PADRAO: Record<'admin' | 'agente', Modulo[]> = {
-  admin: ['busca', 'terminal', 'cnpj', 'admin'],
+  admin: ['busca', 'terminal', 'cnpj', 'admin', 'intelligence'],
   agente: ['busca', 'cnpj'],
 }
 
@@ -13,4 +13,5 @@ export const MODULO_LABELS: Record<Modulo, string> = {
   terminal: 'Terminal',
   cnpj: 'CNPJ Lookup',
   admin: 'Painel Admin',
+  intelligence: 'Inteligência IA',
 }

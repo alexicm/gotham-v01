@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Building2, MapPin, Users, Briefcase, Download, RefreshCw, MessageCircle } from 'lucide-react'
+import { Building2, MapPin, Users, Briefcase, Download, RefreshCw, MessageCircle, Brain } from 'lucide-react'
 import type { Empresa } from '@/types/empresa'
 import { formatCNPJ, formatCapital, formatDate, situacaoColor, exportCSV } from '@/lib/formatters'
 import { WhatsAppModal } from '@/components/WhatsAppModal'
@@ -10,6 +10,7 @@ import { getWhatsAppNumbers, setWhatsAppNumber } from '@/lib/whatsapp'
 interface Props {
   cnpj: string
   empresaBase?: Empresa
+  onAnalisarIA?: (empresa: Empresa) => void
 }
 
 function SectionHeader({ icon, title }: { icon: React.ReactNode; title: string }) {
@@ -84,7 +85,7 @@ const iconBtn: React.CSSProperties = {
   touchAction: 'manipulation',
 }
 
-export function FichaWindow({ cnpj, empresaBase }: Props) {
+export function FichaWindow({ cnpj, empresaBase, onAnalisarIA }: Props) {
   const [empresa, setEmpresa] = useState<Empresa | null>(empresaBase ?? null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -219,6 +220,28 @@ export function FichaWindow({ cnpj, empresaBase }: Props) {
           <button onClick={handleExport} disabled={!empresa} style={iconBtn} aria-label="Exportar CSV">
             <Download size={14} />
           </button>
+          {onAnalisarIA && empresa && (
+            <button
+              onClick={() => onAnalisarIA(empresa)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 5,
+                padding: '5px 12px',
+                background: '#a78bfa',
+                border: 'none',
+                borderRadius: 8,
+                fontSize: 11,
+                fontWeight: 700,
+                cursor: 'pointer',
+                color: '#fff',
+                fontFamily: 'inherit',
+              }}
+            >
+              <Brain size={13} />
+              Analisar com IA
+            </button>
+          )}
         </div>
       </div>
 

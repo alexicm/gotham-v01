@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { useEnrichment } from '@/hooks/useEnrichment'
 import {
   Search, Terminal, FileText, Building2, Clock, BarChart2,
-  X, Minus, Maximize2, GripVertical, LogOut, ShieldCheck, User
+  X, Minus, Maximize2, GripVertical, LogOut, ShieldCheck, User, Brain
 } from 'lucide-react'
 import { BuscaWindow } from './windows/BuscaWindow'
 import { ResultadosWindow } from './windows/ResultadosWindow'
@@ -13,6 +13,7 @@ import { CnaeTerminalWindow } from './windows/CnaeTerminalWindow'
 import { AdminWindow } from './windows/AdminWindow'
 import { CnpjWindow } from './windows/CnpjWindow'
 import { PerfilWindow } from './windows/PerfilWindow'
+import { IntelligenceWindow } from './windows/IntelligenceWindow'
 import { MobileLayout } from './MobileLayout'
 import { TerminalPasswordGate } from './TerminalPasswordGate'
 import { usePermissoes } from '@/hooks/usePermissoes'
@@ -445,6 +446,20 @@ function CnaeDesktopOS({ onLogout }: { onLogout?: () => void }) {
   const openFichaRef = useRef<(cnpj: string, base?: Empresa) => void>(() => {})
   const openBuscaRef = useRef<() => void>(() => {})
 
+  // ─ Open Intelligence ─
+  const openIntelligence = useCallback((empresa?: Empresa) => {
+    const title = empresa
+      ? `inteligencia — ${(empresa.nomeFantasia || empresa.razaoSocial).slice(0, 25)}`
+      : 'inteligencia.ai'
+    upsertWindow('intelligence', {
+      title,
+      icon: <Brain size={13} color="#a78bfa" />,
+      width: 480,
+      height: 560,
+      content: <IntelligenceWindow empresa={empresa} />,
+    })
+  }, [upsertWindow])
+
   // ─ Open Ficha ─
   const openFicha = useCallback((cnpj: string, base?: Empresa) => {
     const id = `ficha-${cnpj.replace(/\D/g, '')}`
@@ -453,9 +468,15 @@ function CnaeDesktopOS({ onLogout }: { onLogout?: () => void }) {
       icon: <Building2 size={13} color="#d97706" />,
       width: 560,
       height: 620,
-      content: <FichaWindow cnpj={cnpj} empresaBase={base} />,
+      content: (
+        <FichaWindow
+          cnpj={cnpj}
+          empresaBase={base}
+          onAnalisarIA={(empresa) => openIntelligence(empresa)}
+        />
+      ),
     })
-  }, [upsertWindow])
+  }, [upsertWindow, openIntelligence])
 
   // ref para lastParams para usar dentro de callbacks sem recapturar closure
   const lastParamsRef = useRef<BuscaParams | null>(null)
@@ -645,6 +666,7 @@ function CnaeDesktopOS({ onLogout }: { onLogout?: () => void }) {
             { label: 'Terminal', fn: openTerminalComGate, icon: <Terminal size={11} />, modulo: 'terminal' as const },
             { label: 'CNPJ', fn: openCnpj, icon: <Search size={11} />, modulo: 'cnpj' as const },
             { label: 'Perfil', fn: openPerfil, icon: <User size={11} />, modulo: 'busca' as const },
+            ...(podeAcessar('intelligence') ? [{ label: 'IA', fn: () => openIntelligence(), icon: <Brain size={11} />, modulo: 'intelligence' as const }] : []),
             ...(nivel === 'admin' ? [{ label: 'Admin', fn: openAdmin, icon: <ShieldCheck size={11} />, modulo: 'admin' as const }] : []),
           ].filter(item => podeAcessar(item.modulo)).map(item => (
             <button
@@ -725,6 +747,9 @@ function CnaeDesktopOS({ onLogout }: { onLogout?: () => void }) {
             icon={<FileText size={20} color="#d97706" />}
             onClick={() => openResultados(lastResult, lastParams ?? {})}
           />
+        )}
+        {podeAcessar('intelligence') && (
+          <DesktopIcon label="inteligencia.ai" icon={<Brain size={20} color="#a78bfa" />} onClick={() => openIntelligence()} />
         )}
         {nivel === 'admin' && (
           <DesktopIcon label="admin_panel" icon={<ShieldCheck size={20} color="#d97706" />} onClick={openAdmin} />
