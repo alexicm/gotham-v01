@@ -10,6 +10,9 @@ interface Props {
   onAbrirFicha: (empresa: Empresa) => void
   onPaginar?: (pagina: number) => void
   loadingPagina?: boolean
+  enrichedMap?: Map<string, Empresa>
+  enrichingCnpjs?: Set<string>
+  buscaParams?: import('@/types/empresa').BuscaParams
 }
 
 type SortKey = 'razaoSocial' | 'municipio' | 'uf' | 'porte' | 'capitalSocial' | 'situacao'
@@ -176,7 +179,7 @@ function btnStyle(bg: string, color: string): React.CSSProperties {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export function ResultadosWindow({ resultado, onAbrirFicha, onPaginar, loadingPagina }: Props) {
+export function ResultadosWindow({ resultado, onAbrirFicha, onPaginar, loadingPagina, enrichedMap, enrichingCnpjs, buscaParams }: Props) {
   const { empresas, total, pagina, ultimaPagina } = resultado
   const [filtro, setFiltro] = useState('')
   const [sortKey, setSortKey] = useState<SortKey>('razaoSocial')
@@ -193,14 +196,27 @@ export function ResultadosWindow({ resultado, onAbrirFicha, onPaginar, loadingPa
 
   const filtered = useMemo(() => {
     const q = filtro.toLowerCase()
-    return empresas.filter(e =>
-      !q ||
-      e.razaoSocial.toLowerCase().includes(q) ||
-      e.nomeFantasia?.toLowerCase().includes(q) ||
-      e.cnpj.includes(q) ||
-      e.municipio?.toLowerCase().includes(q)
-    )
-  }, [empresas, filtro])
+    const filtroPortes = buscaParams?.filtroPortes ?? []
+    const filtroSituacoes = buscaParams?.filtroSituacoes ?? []
+    const filtroMunicipio = (buscaParams?.municipio ?? '').toLowerCase()
+
+    return empresas.filter(e => {
+      const enriched = enrichedMap?.get(e.cnpj)
+      const situacao = (enriched?.situacao ?? e.situacao ?? '').toUpperCase()
+      const porte = enriched?.porte ?? e.porte ?? ''
+      const municipioEmpresa = (enriched?.municipio ?? e.municipio ?? '').toLowerCase()
+
+      if (filtroPortes.length > 0 && !filtroPortes.some(p => porte.toUpperCase().includes(p))) return false
+      if (filtroSituacoes.length > 0 && !filtroSituacoes.includes(situacao)) return false
+      if (filtroMunicipio && !municipioEmpresa.includes(filtroMunicipio)) return false
+
+      return !q ||
+        e.razaoSocial.toLowerCase().includes(q) ||
+        (e.nomeFantasia?.toLowerCase() ?? '').includes(q) ||
+        e.cnpj.includes(q) ||
+        municipioEmpresa.includes(q)
+    })
+  }, [empresas, filtro, enrichedMap, enrichingCnpjs, buscaParams])
 
   const sorted = useMemo(() => {
     return [...filtered].sort((a, b) => {
@@ -307,6 +323,12 @@ export function ResultadosWindow({ resultado, onAbrirFicha, onPaginar, loadingPa
 
       {/* Content */}
       <div style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
+        {/* Aviso de filtro de situação */}
+        {buscaParams?.filtroSituacoes && buscaParams.filtroSituacoes.length > 0 && filtered.length < empresas.length && (
+          <div style={{ margin: '8px 16px 0', background: '#fffbeb', border: '1px solid #fbbf24', borderRadius: 6, padding: '6px 12px', fontSize: 11, color: '#7a6a4a' }}>
+            {empresas.length - filtered.length} empresa(s) ocultada(s) pelo filtro de situação cadastral.
+          </div>
+        )}
         {loadingPagina ? (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 200, color: '#7a6a4a', fontSize: 13 }}>
             Carregando...
@@ -347,7 +369,12 @@ export function ResultadosWindow({ resultado, onAbrirFicha, onPaginar, loadingPa
                     <tr
                       key={empresa.cnpj}
                       className="res-row"
-                      style={{ background: i % 2 === 0 ? '#faf8f2' : '#f5f1e8' }}
+                      onClick={() => onAbrirFicha(enrichedMap?.get(empresa.cnpj) ?? empresa)}
+                      style={{
+                        background: i % 2 === 0 ? '#faf8f2' : '#f5f1e8',
+                        cursor: 'pointer',
+                        opacity: enrichingCnpjs?.has(empresa.cnpj) ? 0.7 : 1,
+                      }}
                     >
                       <td style={tdStyle}>
                         <div style={{ fontWeight: 600, fontSize: 12, color: '#2c2416', marginBottom: 2 }}>
@@ -364,20 +391,21 @@ export function ResultadosWindow({ resultado, onAbrirFicha, onPaginar, loadingPa
                         {formatCapital(empresa.capitalSocial)}
                       </td>
                       <td style={tdStyle}>
-                        <span
-                          style={{
-                            display: 'inline-block',
-                            padding: '2px 8px',
-                            borderRadius: 99,
-                            fontSize: 10,
-                            fontWeight: 700,
-                            background: situacaoColor(empresa.situacao) + '22',
-                            color: situacaoColor(empresa.situacao),
-                            border: `1px solid ${situacaoColor(empresa.situacao)}44`,
-                          }}
-                        >
-                          {empresa.situacao}
-                        </span>
+                        {enrichingCnpjs?.has(empresa.cnpj) ? (
+                          <span style={{ fontSize: 10, color: '#a89868' }}>...</span>
+                        ) : (
+                          <span
+                            style={{
+                              display: 'inline-block', padding: '2px 8px', borderRadius: 99,
+                              fontSize: 10, fontWeight: 700,
+                              background: situacaoColor(enrichedMap?.get(empresa.cnpj)?.situacao ?? empresa.situacao) + '22',
+                              color: situacaoColor(enrichedMap?.get(empresa.cnpj)?.situacao ?? empresa.situacao),
+                              border: `1px solid ${situacaoColor(enrichedMap?.get(empresa.cnpj)?.situacao ?? empresa.situacao)}44`,
+                            }}
+                          >
+                            {enrichedMap?.get(empresa.cnpj)?.situacao ?? empresa.situacao}
+                          </span>
+                        )}
                       </td>
                       <td style={tdStyle}>
                         <button
