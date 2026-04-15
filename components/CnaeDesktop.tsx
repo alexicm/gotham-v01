@@ -585,12 +585,6 @@ function CnaeDesktopOS({ onLogout }: { onLogout?: () => void }) {
   useEffect(() => { openFichaRef.current = openFicha }, [openFicha])
   useEffect(() => { openBuscaRef.current = openBusca }, [openBusca])
 
-  // Bootstrap: open busca + terminal on first load
-  useEffect(() => {
-    openBusca()
-    openTerminal()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
 
   const openWindows = windows.filter(w => !w.minimized)
   const taskbarWindows = windows
