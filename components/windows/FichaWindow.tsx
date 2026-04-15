@@ -107,6 +107,10 @@ export function FichaWindow({ cnpj, empresaBase }: Props) {
   }
 
   useEffect(() => {
+    if (empresaBase?.enriquecida) {
+      setEmpresa(empresaBase)
+      return
+    }
     fetchFicha()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cnpj])
