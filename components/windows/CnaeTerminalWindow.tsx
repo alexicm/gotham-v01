@@ -136,8 +136,8 @@ export function CnaeTerminalWindow({ onAbrirBusca, onResultados, onAbrirFicha }:
       quantidade: parseInt(n, 10) || 25,
     }
     if (uf) payload.estados = [uf.toUpperCase()]
-    if (args['simples']) payload.opcao_pelo_simples = args['simples'].toUpperCase() === 'S'
-    if (args['mei']) payload.opcao_pelo_mei = args['mei'].toUpperCase() === 'S'
+    if (args['simples']) payload.simples_nacional = args['simples'].toUpperCase() === 'S'
+    if (args['mei']) payload.mei = args['mei'].toUpperCase() === 'S'
 
     try {
       const res = await fetch('/api/busca-cnae', {
