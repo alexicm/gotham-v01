@@ -7,6 +7,7 @@ import { ResultadosWindow } from './windows/ResultadosWindow'
 import { FichaWindow } from './windows/FichaWindow'
 import { CnaeTerminalWindow } from './windows/CnaeTerminalWindow'
 import type { Empresa, BuscaResult, BuscaParams } from '@/types/empresa'
+import { useEnrichment } from '@/hooks/useEnrichment'
 
 type Tab = 'busca' | 'resultados' | 'ficha' | 'terminal'
 
@@ -204,6 +205,7 @@ export function MobileLayout({ onLogout }: { onLogout?: () => void }) {
   const [params, setParams] = useState<BuscaParams | null>(null)
   const [fichaTarget, setFichaTarget] = useState<FichaTarget | null>(null)
   const [loadingPagina, setLoadingPagina] = useState(false)
+  const { enrich, enrichedMap, enrichingCnpjs } = useEnrichment()
 
   const paramsRef = useRef<BuscaParams | null>(null)
   const resultadoRef = useRef<BuscaResult | null>(null)
@@ -213,8 +215,9 @@ export function MobileLayout({ onLogout }: { onLogout?: () => void }) {
     setParams(p)
     paramsRef.current = p
     resultadoRef.current = result
+    enrich(result.empresas)
     setTab('resultados')
-  }, [])
+  }, [enrich])
 
   const handleAbrirFicha = useCallback((empresa: Empresa) => {
     setFichaTarget({ cnpj: empresa.cnpj, base: empresa })
@@ -328,6 +331,9 @@ export function MobileLayout({ onLogout }: { onLogout?: () => void }) {
               onAbrirFicha={handleAbrirFicha}
               onPaginar={handlePaginar}
               loadingPagina={loadingPagina}
+              enrichedMap={enrichedMap}
+              enrichingCnpjs={enrichingCnpjs}
+              buscaParams={params ?? undefined}
             />
           ) : (
             <div
