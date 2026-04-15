@@ -93,16 +93,34 @@ export interface Empresa {
   optanteMei?: boolean
   cnaesSecundarios?: { codigo: number; descricao: string }[]
   socios?: Socio[]
+  enriquecida?: boolean   // true após enriquecimento via BrasilAPI/cache Supabase
 }
 
 export interface BuscaParams {
-  cnae?: string
-  uf?: string
-  municipio?: string
-  porte?: string
-  situacao?: string
+  // Params enviados à Lista CNAE API
+  cnae?: string                  // string de CNAEs separados por vírgula (ex: "6201500,4530703")
+  cnpjs?: string                 // CNPJs separados por vírgula (opcional)
+  termosBusca?: string           // termos separados por vírgula (opcional)
+  termoBuscaEm?: 'R' | 'F' | 'A' // Razão Social, Fantasia, Ambos (padrão 'A')
+  incluirCnaesSecundarios?: boolean
+  somenteMatrizes?: boolean
+  simplesNacional?: 'ignorar' | 'apenas' | 'excluir'
+  mei?: 'ignorar' | 'apenas' | 'excluir'
+  capitalSocialMinimo?: number
+  capitalSocialMaximo?: number
+  telefoneObrigatorio?: boolean
+  emailObrigatorio?: boolean
+  dataInicio?: string            // ISO date YYYY-MM-DD
+  dataFim?: string               // ISO date YYYY-MM-DD
+  // Localização
+  uf?: string                    // código UF (ex: "SP")
+  municipio?: string             // texto livre (filtro frontend apenas)
+  // Paginação/quantidade
   pagina?: number
   porPagina?: number
+  // Filtros frontend (aplicados pós-busca)
+  filtroPortes?: string[]        // ex: ['ME', 'EPP']
+  filtroSituacoes?: string[]     // ex: ['ATIVA', 'SUSPENSA']
 }
 
 export interface BuscaResult {
