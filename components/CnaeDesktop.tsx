@@ -13,6 +13,7 @@ import { CnaeTerminalWindow } from './windows/CnaeTerminalWindow'
 import { AdminWindow } from './windows/AdminWindow'
 import { CnpjWindow } from './windows/CnpjWindow'
 import { MobileLayout } from './MobileLayout'
+import { TerminalPasswordGate } from './TerminalPasswordGate'
 import { usePermissoes } from '@/hooks/usePermissoes'
 import type { Empresa, BuscaResult, BuscaParams } from '@/types/empresa'
 
@@ -383,6 +384,7 @@ function CnaeDesktopOS({ onLogout }: { onLogout?: () => void }) {
   const { enrich, enrichedMap, enrichingCnpjs } = useEnrichment()
   const { podeAcessar, nivel } = usePermissoes()
   const [clock, setClock] = useState('')
+  const [terminalGateAberto, setTerminalGateAberto] = useState(false)
   // zTop como ref para evitar reset no hot-reload e conflitos entre renders
   const zTopRef = useRef(100)
 
@@ -558,6 +560,10 @@ function CnaeDesktopOS({ onLogout }: { onLogout?: () => void }) {
     })
   }, [upsertWindow])
 
+  const openTerminalComGate = useCallback(() => {
+    setTerminalGateAberto(true)
+  }, [])
+
   // ─ Open Admin ─
   const openAdmin = useCallback(() => {
     upsertWindow('admin', {
@@ -624,7 +630,7 @@ function CnaeDesktopOS({ onLogout }: { onLogout?: () => void }) {
         <div style={{ display: 'flex', gap: 2, flex: 1 }}>
           {[
             { label: 'Busca', fn: openBusca, icon: <Search size={11} />, modulo: 'busca' as const },
-            { label: 'Terminal', fn: openTerminal, icon: <Terminal size={11} />, modulo: 'terminal' as const },
+            { label: 'Terminal', fn: openTerminalComGate, icon: <Terminal size={11} />, modulo: 'terminal' as const },
             { label: 'CNPJ', fn: openCnpj, icon: <Search size={11} />, modulo: 'cnpj' as const },
             ...(nivel === 'admin' ? [{ label: 'Admin', fn: openAdmin, icon: <ShieldCheck size={11} />, modulo: 'admin' as const }] : []),
           ].filter(item => podeAcessar(item.modulo)).map(item => (
@@ -695,7 +701,7 @@ function CnaeDesktopOS({ onLogout }: { onLogout?: () => void }) {
           <DesktopIcon label="nova_busca" icon={<Search size={20} color="#d97706" />} onClick={openBusca} />
         )}
         {podeAcessar('terminal') && (
-          <DesktopIcon label="terminal" icon={<Terminal size={20} color="#4ade80" />} onClick={openTerminal} />
+          <DesktopIcon label="terminal" icon={<Terminal size={20} color="#4ade80" />} onClick={openTerminalComGate} />
         )}
         {podeAcessar('cnpj') && (
           <DesktopIcon label="cnpj_lookup" icon={<Search size={20} color="#d97706" />} onClick={openCnpj} />
@@ -781,6 +787,17 @@ function CnaeDesktopOS({ onLogout }: { onLogout?: () => void }) {
           <span style={{ fontSize: 11, color: '#7a6a4a', fontFamily: 'monospace' }}>{clock}</span>
         </div>
       </div>
+
+      {/* ── Terminal Gate ──────────────────────────────────────────────────── */}
+      {terminalGateAberto && (
+        <TerminalPasswordGate
+          onConfirm={() => {
+            setTerminalGateAberto(false)
+            openTerminal()
+          }}
+          onCancel={() => setTerminalGateAberto(false)}
+        />
+      )}
     </div>
   )
 }
