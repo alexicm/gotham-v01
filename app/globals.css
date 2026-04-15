@@ -137,3 +137,24 @@
   75%       { transform: translateX(-3px); }
   90%       { transform: translateX(3px); }
 }
+
+@keyframes gtm-dash {
+  to { stroke-dashoffset: 136; }
+}
+
+@keyframes gtm-blink {
+  50% { opacity: 0; }
+}
+
+.gtm-triangle {
+  stroke: #d97706;
+  stroke-dasharray: 17;
+  animation: gtm-dash 2.5s cubic-bezier(0.35, 0.04, 0.63, 0.95) infinite;
+}
+
+.gtm-loading-text {
+  font-family: 'Geist Mono', monospace;
+  font-size: 5px;
+  animation: gtm-blink 0.9s ease-in-out infinite;
+  fill: #2c2416;
+}

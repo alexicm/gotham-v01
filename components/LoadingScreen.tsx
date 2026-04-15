@@ -1,3 +1,5 @@
+'use client'
+
 export function LoadingScreen() {
   return (
     <div style={{
@@ -11,26 +13,6 @@ export function LoadingScreen() {
       fontFamily: "'Geist Mono', monospace",
       zIndex: 99999,
     }}>
-      <style>{`
-        .gtm-triangle {
-          stroke: #d97706;
-          stroke-dasharray: 17;
-          animation: gtm-dash 2.5s cubic-bezier(0.35, 0.04, 0.63, 0.95) infinite;
-        }
-        @keyframes gtm-dash {
-          to { stroke-dashoffset: 136; }
-        }
-        .gtm-loading-text {
-          font-family: 'Geist Mono', monospace;
-          font-size: 5px;
-          animation: gtm-blink 0.9s ease-in-out infinite;
-          fill: #2c2416;
-        }
-        @keyframes gtm-blink {
-          50% { opacity: 0; }
-        }
-      `}</style>
-
       <svg width="200" height="200" viewBox="0 0 40 60">
         <polygon
           className="gtm-triangle"
