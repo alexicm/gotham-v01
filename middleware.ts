@@ -23,14 +23,36 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Renova sessão — não redireciona, apenas atualiza cookies
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Redireciona para / se rota protegida e não autenticado
+  // Redireciona para / se API protegida e não autenticado
   const isProtectedApi = request.nextUrl.pathname.startsWith('/api/busca-cnae') ||
     request.nextUrl.pathname.startsWith('/api/cnpj')
 
   if (isProtectedApi && !user) {
+    return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
+  }
+
+  // Protege a rota /admin
+  if (request.nextUrl.pathname.startsWith('/admin')) {
+    if (!user) {
+      return NextResponse.redirect(new URL('/', request.url))
+    }
+
+    // Verificar nível (usa anon key com sessão do usuário — RLS permite ler próprio perfil)
+    const { data: perfil } = await supabase
+      .from('perfis')
+      .select('nivel')
+      .eq('id', user.id)
+      .single()
+
+    if (perfil?.nivel !== 'admin') {
+      return NextResponse.redirect(new URL('/', request.url))
+    }
+  }
+
+  // Protege as APIs de admin
+  if (request.nextUrl.pathname.startsWith('/api/admin') && !user) {
     return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
   }
 
