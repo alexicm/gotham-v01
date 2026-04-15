@@ -4,13 +4,16 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { useEnrichment } from '@/hooks/useEnrichment'
 import {
   Search, Terminal, FileText, Building2, Clock, BarChart2,
-  X, Minus, Maximize2, GripVertical, LogOut
+  X, Minus, Maximize2, GripVertical, LogOut, ShieldCheck
 } from 'lucide-react'
 import { BuscaWindow } from './windows/BuscaWindow'
 import { ResultadosWindow } from './windows/ResultadosWindow'
 import { FichaWindow } from './windows/FichaWindow'
 import { CnaeTerminalWindow } from './windows/CnaeTerminalWindow'
+import { AdminWindow } from './windows/AdminWindow'
+import { CnpjWindow } from './windows/CnpjWindow'
 import { MobileLayout } from './MobileLayout'
+import { usePermissoes } from '@/hooks/usePermissoes'
 import type { Empresa, BuscaResult, BuscaParams } from '@/types/empresa'
 
 // ─── Hook: detect mobile ──────────────────────────────────────────────────────
@@ -95,6 +98,14 @@ function DesktopIcon({ label, icon, onClick }: { label: string; icon: React.Reac
 
 // ─── OS Window ────────────────────────────────────────────────────────────────
 
+const MENU_BAR_H = 38
+const MIN_W = 380
+const MIN_H = 280
+const EDGE = 8   // px — border drag/resize hit area
+const CORNER = 18 // px — corner resize hit area
+
+type ResizeDir = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w'
+
 function OsWindowFrame({
   win,
   onClose,
@@ -111,31 +122,49 @@ function OsWindowFrame({
   onMaximize: () => void
   onFocus: () => void
   onMove: (x: number, y: number) => void
-  onResize: (w: number, h: number) => void
+  onResize: (w: number, h: number, x?: number, y?: number) => void
   children: React.ReactNode
 }) {
   const dragging = useRef(false)
-  const resizing = useRef(false)
+  const resizeDir = useRef<ResizeDir | null>(null)
   const dragOffset = useRef({ x: 0, y: 0 })
-  const resizeStart = useRef({ mx: 0, my: 0, w: 0, h: 0 })
+  const resizeStart = useRef({ mx: 0, my: 0, x: 0, y: 0, w: 0, h: 0 })
 
   useEffect(() => {
     function onMouseMove(e: MouseEvent) {
       if (dragging.current) {
-        onMove(e.clientX - dragOffset.current.x, e.clientY - dragOffset.current.y)
+        const newX = e.clientX - dragOffset.current.x
+        const newY = Math.max(MENU_BAR_H, e.clientY - dragOffset.current.y)
+        onMove(newX, newY)
+        return
       }
-      if (resizing.current) {
-        const dx = e.clientX - resizeStart.current.mx
-        const dy = e.clientY - resizeStart.current.my
-        onResize(
-          Math.max(380, resizeStart.current.w + dx),
-          Math.max(280, resizeStart.current.h + dy)
-        )
+      const dir = resizeDir.current
+      if (!dir) return
+      const { mx, my, x: ox, y: oy, w: ow, h: oh } = resizeStart.current
+      const dx = e.clientX - mx
+      const dy = e.clientY - my
+
+      let newW = ow, newH = oh, newX = ox, newY = oy
+
+      // horizontal
+      if (dir.includes('e')) newW = Math.max(MIN_W, ow + dx)
+      if (dir.includes('w')) { newW = Math.max(MIN_W, ow - dx); newX = ox + ow - newW }
+
+      // vertical
+      if (dir.includes('s')) newH = Math.max(MIN_H, oh + dy)
+      if (dir === 'n' || dir === 'nw' || dir === 'ne') {
+        newH = Math.max(MIN_H, oh - dy)
+        newY = oy + oh - newH
+        // Clamp so top border never goes above menu bar
+        if (newY < MENU_BAR_H) { newY = MENU_BAR_H; newH = oh + oy - MENU_BAR_H }
       }
+
+      const posChanged = newX !== ox || newY !== oy
+      onResize(newW, newH, posChanged ? newX : undefined, posChanged ? newY : undefined)
     }
     function onMouseUp() {
       dragging.current = false
-      resizing.current = false
+      resizeDir.current = null
     }
     window.addEventListener('mousemove', onMouseMove)
     window.addEventListener('mouseup', onMouseUp)
@@ -144,6 +173,42 @@ function OsWindowFrame({
       window.removeEventListener('mouseup', onMouseUp)
     }
   }, [onMove, onResize])
+
+  function startDrag(e: React.MouseEvent) {
+    if ((e.target as HTMLElement).closest('button')) return
+    e.stopPropagation()
+    dragging.current = true
+    dragOffset.current = { x: e.clientX - win.x, y: e.clientY - win.y }
+    onFocus()
+  }
+
+  function startResize(e: React.MouseEvent, dir: ResizeDir) {
+    e.stopPropagation()
+    e.preventDefault()
+    resizeDir.current = dir
+    resizeStart.current = { mx: e.clientX, my: e.clientY, x: win.x, y: win.y, w: win.width, h: win.height }
+    onFocus()
+  }
+
+  // ── edge/corner hit-area helpers ──────────────────────────────────────────
+  const edgeBase: React.CSSProperties = { position: 'absolute', zIndex: 10, userSelect: 'none' }
+
+  // Corners (priority over edges — rendered last so they sit on top)
+  const corners: { dir: ResizeDir; style: React.CSSProperties }[] = [
+    { dir: 'nw', style: { top: 0, left: 0, width: CORNER, height: CORNER, cursor: 'nw-resize' } },
+    { dir: 'ne', style: { top: 0, right: 0, width: CORNER, height: CORNER, cursor: 'ne-resize' } },
+    { dir: 'sw', style: { bottom: 0, left: 0, width: CORNER, height: CORNER, cursor: 'sw-resize' } },
+    { dir: 'se', style: { bottom: 0, right: 0, width: CORNER, height: CORNER, cursor: 'se-resize' } },
+  ]
+
+  // Edges (between corners)
+  const edges: { dir: ResizeDir; style: React.CSSProperties; isDrag?: boolean }[] = [
+    // Top edge — drag (title bar replacement) — also resizes when only the top strip is grabbed outside the title bar area; we'll keep it pure drag here since resize-n is handled by the corner strip above the content
+    { dir: 'n', style: { top: 0, left: CORNER, right: CORNER, height: EDGE, cursor: 'n-resize' } },
+    { dir: 's', style: { bottom: 0, left: CORNER, right: CORNER, height: EDGE, cursor: 's-resize' } },
+    { dir: 'w', style: { top: CORNER, bottom: CORNER, left: 0, width: EDGE, cursor: 'w-resize' } },
+    { dir: 'e', style: { top: CORNER, bottom: CORNER, right: 0, width: EDGE, cursor: 'e-resize' } },
+  ]
 
   return (
     <div
@@ -164,14 +229,32 @@ function OsWindowFrame({
         overflow: 'hidden',
       }}
     >
-      {/* Title bar */}
+      {/* Edge drag/resize strips */}
+      {edges.map(({ dir, style }) => (
+        <div
+          key={dir}
+          onMouseDown={e => startResize(e, dir)}
+          style={{ ...edgeBase, ...style }}
+        />
+      ))}
+
+      {/* Corner resize handles */}
+      {corners.map(({ dir, style }) => (
+        <div
+          key={dir}
+          onMouseDown={e => startResize(e, dir)}
+          style={{ ...edgeBase, ...style }}
+        >
+          {/* Visual indicator only for SE corner */}
+          {dir === 'se' && (
+            <div style={{ position: 'absolute', bottom: 3, right: 3, width: 8, height: 8, borderRight: '2px solid #a89868', borderBottom: '2px solid #a89868', borderRadius: 1 }} />
+          )}
+        </div>
+      ))}
+
+      {/* Title bar — also acts as drag handle */}
       <div
-        onMouseDown={e => {
-          if ((e.target as HTMLElement).closest('button')) return
-          dragging.current = true
-          dragOffset.current = { x: e.clientX - win.x, y: e.clientY - win.y }
-          onFocus()
-        }}
+        onMouseDown={startDrag}
         style={{
           height: 38,
           background: '#ede8da',
@@ -183,6 +266,8 @@ function OsWindowFrame({
           cursor: 'move',
           userSelect: 'none',
           flexShrink: 0,
+          position: 'relative',
+          zIndex: 11,
         }}
       >
         {/* Traffic lights */}
@@ -215,26 +300,6 @@ function OsWindowFrame({
       {/* Content */}
       <div style={{ flex: 1, overflow: 'hidden' }}>
         {children}
-      </div>
-
-      {/* Resize handle */}
-      <div
-        onMouseDown={e => {
-          e.stopPropagation()
-          resizing.current = true
-          resizeStart.current = { mx: e.clientX, my: e.clientY, w: win.width, h: win.height }
-        }}
-        style={{
-          position: 'absolute',
-          bottom: 0,
-          right: 0,
-          width: 16,
-          height: 16,
-          cursor: 'se-resize',
-          zIndex: 1,
-        }}
-      >
-        <div style={{ position: 'absolute', bottom: 3, right: 3, width: 8, height: 8, borderRight: '2px solid #a89868', borderBottom: '2px solid #a89868', borderRadius: 1 }} />
       </div>
     </div>
   )
@@ -316,6 +381,7 @@ function CnaeDesktopOS({ onLogout }: { onLogout?: () => void }) {
   const [lastResult, setLastResult] = useState<BuscaResult | null>(null)
   const [lastParams, setLastParams] = useState<BuscaParams | null>(null)
   const { enrich, enrichedMap, enrichingCnpjs } = useEnrichment()
+  const { podeAcessar, nivel } = usePermissoes()
   const [clock, setClock] = useState('')
   // zTop como ref para evitar reset no hot-reload e conflitos entre renders
   const zTopRef = useRef(100)
@@ -360,8 +426,8 @@ function CnaeDesktopOS({ onLogout }: { onLogout?: () => void }) {
   const moveWindow = useCallback((id: string, x: number, y: number) => {
     setWindows(prev => prev.map(w => w.id === id ? { ...w, x, y } : w))
   }, [])
-  const resizeWindow = useCallback((id: string, width: number, height: number) => {
-    setWindows(prev => prev.map(w => w.id === id ? { ...w, width, height } : w))
+  const resizeWindow = useCallback((id: string, width: number, height: number, x?: number, y?: number) => {
+    setWindows(prev => prev.map(w => w.id === id ? { ...w, width, height, ...(x !== undefined ? { x } : {}), ...(y !== undefined ? { y } : {}) } : w))
   }, [])
   const maximizeWindow = useCallback((id: string) => {
     const z = ++zTopRef.current
@@ -492,6 +558,28 @@ function CnaeDesktopOS({ onLogout }: { onLogout?: () => void }) {
     })
   }, [upsertWindow])
 
+  // ─ Open Admin ─
+  const openAdmin = useCallback(() => {
+    upsertWindow('admin', {
+      title: 'admin_panel.sys',
+      icon: <ShieldCheck size={13} color="#d97706" />,
+      width: 640,
+      height: 480,
+      content: <AdminWindow />,
+    })
+  }, [upsertWindow])
+
+  // ─ Open CNPJ ─
+  const openCnpj = useCallback(() => {
+    upsertWindow('cnpj', {
+      title: 'cnpj_lookup.app',
+      icon: <Search size={13} color="#d97706" />,
+      width: 600,
+      height: 580,
+      content: <CnpjWindow />,
+    })
+  }, [upsertWindow])
+
   // Keep refs up-to-date
   useEffect(() => { openResultadosRef.current = openResultados }, [openResultados])
   useEffect(() => { openFichaRef.current = openFicha }, [openFicha])
@@ -541,9 +629,11 @@ function CnaeDesktopOS({ onLogout }: { onLogout?: () => void }) {
 
         <div style={{ display: 'flex', gap: 2, flex: 1 }}>
           {[
-            { label: 'Busca', fn: openBusca, icon: <Search size={11} /> },
-            { label: 'Terminal', fn: openTerminal, icon: <Terminal size={11} /> },
-          ].map(item => (
+            { label: 'Busca', fn: openBusca, icon: <Search size={11} />, modulo: 'busca' as const },
+            { label: 'Terminal', fn: openTerminal, icon: <Terminal size={11} />, modulo: 'terminal' as const },
+            { label: 'CNPJ', fn: openCnpj, icon: <Search size={11} />, modulo: 'cnpj' as const },
+            ...(nivel === 'admin' ? [{ label: 'Admin', fn: openAdmin, icon: <ShieldCheck size={11} />, modulo: 'admin' as const }] : []),
+          ].filter(item => podeAcessar(item.modulo)).map(item => (
             <button
               key={item.label}
               onClick={item.fn}
@@ -607,14 +697,24 @@ function CnaeDesktopOS({ onLogout }: { onLogout?: () => void }) {
 
       {/* ── Desktop Icons ─────────────────────────────────────────────────── */}
       <div style={{ position: 'fixed', left: 16, top: 52, display: 'flex', flexDirection: 'column', gap: 8, zIndex: 1 }}>
-        <DesktopIcon label="nova_busca" icon={<Search size={20} color="#d97706" />} onClick={openBusca} />
-        <DesktopIcon label="terminal" icon={<Terminal size={20} color="#4ade80" />} onClick={openTerminal} />
-        {lastResult && (
+        {podeAcessar('busca') && (
+          <DesktopIcon label="nova_busca" icon={<Search size={20} color="#d97706" />} onClick={openBusca} />
+        )}
+        {podeAcessar('terminal') && (
+          <DesktopIcon label="terminal" icon={<Terminal size={20} color="#4ade80" />} onClick={openTerminal} />
+        )}
+        {podeAcessar('cnpj') && (
+          <DesktopIcon label="cnpj_lookup" icon={<Search size={20} color="#d97706" />} onClick={openCnpj} />
+        )}
+        {lastResult && podeAcessar('busca') && (
           <DesktopIcon
             label="resultados"
             icon={<FileText size={20} color="#d97706" />}
             onClick={() => openResultados(lastResult, lastParams ?? {})}
           />
+        )}
+        {nivel === 'admin' && (
+          <DesktopIcon label="admin_panel" icon={<ShieldCheck size={20} color="#d97706" />} onClick={openAdmin} />
         )}
       </div>
 
@@ -628,7 +728,7 @@ function CnaeDesktopOS({ onLogout }: { onLogout?: () => void }) {
           onMaximize={() => maximizeWindow(win.id)}
           onFocus={() => focusWindow(win.id)}
           onMove={(x, y) => moveWindow(win.id, x, y)}
-          onResize={(w, h) => resizeWindow(win.id, w, h)}
+          onResize={(w, h, x, y) => resizeWindow(win.id, w, h, x, y)}
         >
           {win.content}
         </OsWindowFrame>
