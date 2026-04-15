@@ -2,6 +2,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { ShieldCheck, UserPlus, X, Check, LogOut } from 'lucide-react'
 import { MODULOS, MODULO_LABELS, MODULOS_PADRAO, type Modulo } from '@/lib/modulos'
 
@@ -32,6 +33,7 @@ const FORM_VAZIO: FormData = {
 }
 
 export default function AdminPage() {
+  const router = useRouter()
   const [usuarios, setUsuarios] = useState<Usuario[]>([])
   const [carregando, setCarregando] = useState(true)
   const [modalAberto, setModalAberto] = useState(false)
@@ -40,15 +42,26 @@ export default function AdminPage() {
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState('')
 
-  const carregarUsuarios = useCallback(async () => {
+  const carregarUsuarios = useCallback(async (signal?: AbortSignal) => {
     setCarregando(true)
-    const res = await fetch('/api/admin/usuarios')
-    const data = await res.json()
-    setUsuarios(data.usuarios ?? [])
-    setCarregando(false)
+    try {
+      const res = await fetch('/api/admin/usuarios', { signal })
+      if (signal?.aborted) return
+      const data = await res.json()
+      setUsuarios(data.usuarios ?? [])
+    } catch (e) {
+      if (e instanceof Error && e.name === 'AbortError') return
+      console.error('[AdminPage] Erro ao carregar usuários:', e)
+    } finally {
+      if (!signal?.aborted) setCarregando(false)
+    }
   }, [])
 
-  useEffect(() => { carregarUsuarios() }, [carregarUsuarios])
+  useEffect(() => {
+    const controller = new AbortController()
+    carregarUsuarios(controller.signal)
+    return () => controller.abort()
+  }, [carregarUsuarios])
 
   function abrirCriar() {
     setEditando(null)
@@ -103,7 +116,7 @@ export default function AdminPage() {
         if (!res.ok) { const d = await res.json(); throw new Error(d.error) }
       }
       setModalAberto(false)
-      carregarUsuarios()
+      await carregarUsuarios()
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Erro ao salvar')
     } finally {
@@ -112,12 +125,21 @@ export default function AdminPage() {
   }
 
   async function toggleAtivo(u: Usuario) {
-    await fetch(`/api/admin/usuarios/${u.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ativo: !u.ativo }),
-    })
-    carregarUsuarios()
+    try {
+      const res = await fetch(`/api/admin/usuarios/${u.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ativo: !u.ativo }),
+      })
+      if (!res.ok) {
+        const d = await res.json()
+        setErro(d.error ?? 'Erro ao alterar status')
+        return
+      }
+      carregarUsuarios()
+    } catch {
+      setErro('Erro de conexão ao alterar status')
+    }
   }
 
   const cell: React.CSSProperties = {
@@ -153,7 +175,7 @@ export default function AdminPage() {
             Novo usuário
           </button>
           <button
-            onClick={() => window.close()}
+            onClick={() => router.push('/')}
             style={{
               display: 'flex', alignItems: 'center', gap: 5,
               padding: '8px 14px', background: '#fee2e2', border: '1px solid #f87171',
