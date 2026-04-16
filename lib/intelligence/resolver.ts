@@ -24,44 +24,16 @@ export async function resolverConsulta(
   const inicio = Date.now()
   const dadosEmpresa = JSON.stringify(empresa, null, 2)
 
-  const classificacao = await classificarConsulta(pergunta, dadosEmpresa)
-
-  // CAMADA 1: LLM direto — alta confiança, sem actors
-  if (classificacao.confiancaLlm >= 0.85 && classificacao.actorsNecessarios.length === 0) {
+  // PADRÃO: LLM responde tudo usando dados cadastrais + conhecimento geral
+  // Apify só é usado quando o usuário solicita explicitamente (autorizado === true)
+  if (!autorizado) {
     const resposta = await responderComLLM(pergunta, dadosEmpresa, empresa.cnpj, inicio)
     return { resposta, pedidoAutorizacao: null }
   }
 
-  // CAMADA 2: Precisa Apify mas não autorizado — retorna estimativa
-  if (classificacao.actorsNecessarios.length > 0 && !autorizado) {
-    const pedido: PedidoAutorizacao = {
-      id: crypto.randomUUID(),
-      cnpj: empresa.cnpj,
-      razaoSocial: empresa.razaoSocial,
-      pergunta,
-      custos: classificacao.custosEstimados,
-      custoTotalEstimado: classificacao.custosEstimados.reduce(
-        (acc, c) => acc + c.creditosEstimados, 0,
-      ),
-      status: 'pendente',
-      criadoEm: new Date().toISOString(),
-    }
+  // APIFY: só executa quando o usuário autorizou explicitamente
+  const classificacao = await classificarConsulta(pergunta, dadosEmpresa)
 
-    const resposta: RespostaInteligencia = {
-      id: crypto.randomUUID(),
-      cnpj: empresa.cnpj,
-      pergunta,
-      resposta: `Para responder com precisão, preciso buscar dados externos. Custo estimado: ~${pedido.custoTotalEstimado.toFixed(3)} créditos Apify.`,
-      confianca: 0.3,
-      fonte: 'openai',
-      tempoMs: Date.now() - inicio,
-      criadoEm: new Date().toISOString(),
-    }
-
-    return { resposta, pedidoAutorizacao: pedido }
-  }
-
-  // CAMADA 3: Executar actors autorizados
   if (classificacao.actorsNecessarios.length > 0) {
     const dadosExternos: Record<string, unknown> = {}
 
@@ -132,8 +104,10 @@ async function responderComLLM(
         role: 'system',
         content: `Você é um analista de inteligência empresarial especializado no mercado brasileiro.
 Responda perguntas sobre empresas de forma concisa, objetiva e em português.
-Use APENAS os dados fornecidos. Não invente informações.
-Se não souber, diga claramente.`,
+Você tem acesso aos dados cadastrais da empresa E ao seu conhecimento geral sobre mercados, setores, regulamentações, tendências e práticas de negócio no Brasil.
+Use os dados cadastrais como base factual e complemente com seu conhecimento quando relevante.
+Quando usar conhecimento geral, deixe claro o que é dado cadastral vs análise.
+Se não tiver informação suficiente, diga o que sabe e o que precisaria de fontes externas.`,
       },
       {
         role: 'user',

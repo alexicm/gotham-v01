@@ -83,6 +83,28 @@ export function LoginScreen({ onLogin }: Props) {
     setTimeout(() => setShake(false), 500)
   }
 
+  if (loading) {
+    return (
+      <div style={styles.overlay}>
+        <div style={styles.bgDots} />
+        <svg width="200" height="200" viewBox="0 0 40 60">
+          <polygon
+            className="gtm-triangle"
+            fill="none"
+            strokeWidth="1"
+            points="16,1 32,32 1,32"
+          />
+          <text className="gtm-loading-text" x="0" y="45">
+            Autenticando...
+          </text>
+        </svg>
+        <span style={{ fontSize: 10, color: '#8a7a5a', marginTop: -32, letterSpacing: '0.1em' }}>
+          GOTHAM v0.1
+        </span>
+      </div>
+    )
+  }
+
   return (
     <div style={styles.overlay}>
       <div style={styles.bgDots} />
@@ -130,9 +152,9 @@ export function LoginScreen({ onLogin }: Props) {
             </div>
             {erro && <div style={styles.erro} role="alert">{erro}</div>}
             <button type="submit" disabled={loading}
-              style={{ ...styles.btn, opacity: loading ? 0.7 : 1, cursor: loading ? 'not-allowed' : 'pointer' }}>
-              {loading ? <span style={styles.spinner} /> : <LogIn size={15} color="#2c2416" />}
-              {loading ? 'Verificando...' : 'Entrar'}
+              style={{ ...styles.btn, cursor: 'pointer' }}>
+              <LogIn size={15} color="#2c2416" />
+              Entrar
             </button>
           </form>
         </div>
