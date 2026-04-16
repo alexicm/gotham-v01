@@ -7,10 +7,6 @@ export function formatCNPJ(cnpj: string): string {
   )
 }
 
-export function cleanCNPJ(cnpj: string): string {
-  return cnpj.replace(/\D/g, '')
-}
-
 export function isValidCNPJ(cnpj: string): boolean {
   const digits = cnpj.replace(/\D/g, '')
   if (digits.length !== 14) return false
@@ -50,18 +46,6 @@ export function formatDate(dateStr: string | null | undefined): string {
   } catch {
     return dateStr
   }
-}
-
-export function porteLabel(porte: string): string {
-  const map: Record<string, string> = {
-    ME: 'Microempresa',
-    EPP: 'Pequeno Porte',
-    DEMAIS: 'Demais',
-    '01': 'Microempresa',
-    '03': 'Pequeno Porte',
-    '05': 'Demais',
-  }
-  return map[porte] ?? porte
 }
 
 export function situacaoColor(sit: string): string {

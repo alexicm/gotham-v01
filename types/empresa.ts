@@ -44,30 +44,6 @@ export interface Socio {
   faixa_etaria: string
 }
 
-// Retorno da Lista CNAE API
-export interface EmpresaListaCNAE {
-  cnpj: string
-  razao_social: string
-  nome_fantasia: string
-  cnae_principal: string
-  descricao_cnae: string
-  municipio: string
-  uf: string
-  situacao: string
-  capital_social: number
-  porte: string
-  email?: string
-  telefone?: string
-}
-
-export interface ListaCNAEResponse {
-  dados: EmpresaListaCNAE[]
-  total: number
-  pagina: number
-  por_pagina: number
-  ultima_pagina: number
-}
-
 // Empresa normalizada para uso interno
 export interface Empresa {
   cnpj: string

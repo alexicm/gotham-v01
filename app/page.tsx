@@ -6,6 +6,7 @@ import dynamic from 'next/dynamic'
 import { LoginScreen } from '@/components/LoginScreen'
 import { LoadingScreen } from '@/components/LoadingScreen'
 import { createClient } from '@/lib/supabase/client'
+import type { AuthChangeEvent, Session } from '@supabase/supabase-js'
 
 const CnaeDesktop = dynamic(
   () => import('@/components/CnaeDesktop').then(m => ({ default: m.CnaeDesktop })),
@@ -26,11 +27,11 @@ export default function Home() {
   useEffect(() => {
     const supabase = createClient()
 
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    supabase.auth.getUser().then(({ data: { user } }: { data: { user: unknown } }) => {
       setAutenticado(!!user)
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
       setAutenticado(!!session?.user)
     })
 
