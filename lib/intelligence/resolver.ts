@@ -87,6 +87,17 @@ async function executarActor(
   }
 }
 
+const SYSTEM_PROMPT = `Você é um analista de inteligência empresarial especializado no mercado brasileiro.
+Você tem acesso à internet para buscar informações atualizadas sobre empresas.
+
+INSTRUÇÕES:
+- Use os dados cadastrais fornecidos como base factual.
+- USE A BUSCA NA WEB para complementar com informações reais e atualizadas: notícias, site da empresa, redes sociais, avaliações, processos judiciais, licitações, etc.
+- Sempre que buscar na web, cite as fontes.
+- Responda em português, de forma concisa e objetiva.
+- Separe claramente: dados cadastrais vs informações encontradas na web vs sua análise.
+- Se encontrar informações conflitantes, aponte a divergência.`
+
 async function responderComLLM(
   pergunta: string,
   dadosEmpresa: string,
@@ -95,34 +106,37 @@ async function responderComLLM(
 ): Promise<RespostaInteligencia> {
   const openai = getOpenAI()
 
-  const completion = await openai.chat.completions.create({
+  // Usa a Responses API com web search para acesso à internet
+  const response = await openai.responses.create({
     model: 'gpt-4o-mini',
-    temperature: 0.3,
-    max_tokens: 600,
-    messages: [
-      {
-        role: 'system',
-        content: `Você é um analista de inteligência empresarial especializado no mercado brasileiro.
-Responda perguntas sobre empresas de forma concisa, objetiva e em português.
-Você tem acesso aos dados cadastrais da empresa E ao seu conhecimento geral sobre mercados, setores, regulamentações, tendências e práticas de negócio no Brasil.
-Use os dados cadastrais como base factual e complemente com seu conhecimento quando relevante.
-Quando usar conhecimento geral, deixe claro o que é dado cadastral vs análise.
-Se não tiver informação suficiente, diga o que sabe e o que precisaria de fontes externas.`,
-      },
-      {
-        role: 'user',
-        content: `DADOS DA EMPRESA:\n${dadosEmpresa}\n\nPERGUNTA: ${pergunta}`,
-      },
-    ],
+    tools: [{ type: 'web_search_preview' }],
+    instructions: SYSTEM_PROMPT,
+    input: `DADOS CADASTRAIS DA EMPRESA:\n${dadosEmpresa}\n\nPERGUNTA DO USUÁRIO: ${pergunta}`,
   })
+
+  // Extrair texto da resposta
+  let textoResposta = ''
+  for (const item of response.output) {
+    if (item.type === 'message') {
+      for (const block of item.content) {
+        if (block.type === 'output_text') {
+          textoResposta += block.text
+        }
+      }
+    }
+  }
+
+  const usouWeb = response.output.some(
+    (item) => item.type === 'web_search_call',
+  )
 
   return {
     id: crypto.randomUUID(),
     cnpj,
     pergunta,
-    resposta: completion.choices[0].message.content ?? 'Não foi possível gerar resposta.',
-    confianca: 0.9,
-    fonte: 'openai',
+    resposta: textoResposta || 'Não foi possível gerar resposta.',
+    confianca: usouWeb ? 0.95 : 0.85,
+    fonte: usouWeb ? 'sintetizado' : 'openai',
     tempoMs: Date.now() - inicio,
     criadoEm: new Date().toISOString(),
   }

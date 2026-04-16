@@ -32,7 +32,7 @@ const FONTE_LABELS: Record<FonteResposta, { label: string; cor: string }> = {
   apify_linkedin: { label: 'linkedin', cor: '#38bdf8' },
   apify_web: { label: 'site', cor: '#fb923c' },
   apify_search: { label: 'google', cor: '#f472b6' },
-  sintetizado: { label: 'múltiplas', cor: '#f472b6' },
+  sintetizado: { label: 'web + análise', cor: '#22c55e' },
 }
 
 const PERGUNTAS_SUGERIDAS = [
