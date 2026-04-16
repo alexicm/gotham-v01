@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Brain, Send, Trash2 } from 'lucide-react'
+import { Brain, Send, Trash2, Search, X, RefreshCw } from 'lucide-react'
 import type { Empresa } from '@/types/empresa'
 import type {
   RespostaInteligencia,
@@ -9,6 +9,7 @@ import type {
   FonteResposta,
 } from '@/types/intelligence'
 import { AuthGate } from '@/components/intelligence/AuthGate'
+import { formatCNPJ } from '@/lib/formatters'
 
 interface Props {
   empresa?: Empresa
@@ -36,24 +37,75 @@ const FONTE_LABELS: Record<FonteResposta, { label: string; cor: string }> = {
 
 const PERGUNTAS_SUGERIDAS = [
   'Qual a situação real desse negócio?',
-  'Quantos funcionários tem no LinkedIn?',
-  'Qual a nota no Google Maps?',
-  'O site está ativo?',
-  'Está contratando agora?',
   'Qual o porte comparado ao setor?',
+  'Resuma os dados dessa empresa',
+  'Quais os riscos de negociar com ela?',
+  'Analise o quadro societário',
+  'Essa empresa parece ativa de verdade?',
 ]
 
-export function IntelligenceWindow({ empresa }: Props) {
+const CNPJ_REGEX = /^\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}$|^\d{14}$/
+
+function extrairCNPJ(texto: string): string | null {
+  const limpo = texto.trim()
+  if (CNPJ_REGEX.test(limpo)) return limpo.replace(/\D/g, '')
+  const match = texto.match(/\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}|\d{14}/)
+  return match ? match[0].replace(/\D/g, '') : null
+}
+
+export function IntelligenceWindow({ empresa: empresaInicial }: Props) {
+  const [empresa, setEmpresa] = useState<Empresa | null>(empresaInicial ?? null)
   const [consultas, setConsultas] = useState<ConsultaLocal[]>([])
   const [input, setInput] = useState('')
   const [autorizarProximas, setAutorizarProximas] = useState(false)
+  const [cnpjInput, setCnpjInput] = useState('')
+  const [buscandoCnpj, setBuscandoCnpj] = useState(false)
+  const [erroCnpj, setErroCnpj] = useState('')
   const scrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
   }, [consultas])
 
+  async function buscarEmpresaPorCNPJ(cnpj: string) {
+    const digits = cnpj.replace(/\D/g, '')
+    if (digits.length !== 14) {
+      setErroCnpj('CNPJ deve ter 14 dígitos')
+      return
+    }
+
+    setBuscandoCnpj(true)
+    setErroCnpj('')
+
+    try {
+      const res = await fetch(`/api/cnpj/${digits}`)
+      const data = await res.json()
+      if (!res.ok) {
+        setErroCnpj(data.error ?? 'CNPJ não encontrado')
+        return
+      }
+      setEmpresa(data)
+      setCnpjInput('')
+      setConsultas([])
+    } catch {
+      setErroCnpj('Falha na conexão com a API')
+    } finally {
+      setBuscandoCnpj(false)
+    }
+  }
+
   async function enviarConsulta(pergunta: string, autorizado = false, consultaId?: string) {
+    // Detectar CNPJ no input — buscar empresa automaticamente
+    const cnpjDetectado = extrairCNPJ(pergunta)
+    if (cnpjDetectado && !empresa) {
+      await buscarEmpresaPorCNPJ(cnpjDetectado)
+      return
+    }
+    if (cnpjDetectado && empresa && cnpjDetectado !== empresa.cnpj.replace(/\D/g, '')) {
+      await buscarEmpresaPorCNPJ(cnpjDetectado)
+      return
+    }
+
     if (!empresa) return
 
     const id = consultaId ?? crypto.randomUUID()
@@ -122,9 +174,32 @@ export function IntelligenceWindow({ empresa }: Props) {
   }
 
   function handleEnviar() {
-    if (!input.trim() || !empresa) return
-    enviarConsulta(input.trim())
+    const texto = input.trim()
+    if (!texto) return
+
+    // Se não tem empresa, tenta detectar CNPJ no input
+    const cnpjDetectado = extrairCNPJ(texto)
+    if (cnpjDetectado && !empresa) {
+      buscarEmpresaPorCNPJ(cnpjDetectado)
+      setInput('')
+      return
+    }
+    if (cnpjDetectado && empresa && cnpjDetectado !== empresa.cnpj.replace(/\D/g, '')) {
+      buscarEmpresaPorCNPJ(cnpjDetectado)
+      setInput('')
+      return
+    }
+
+    if (!empresa) return
+    enviarConsulta(texto)
     setInput('')
+  }
+
+  function handleTrocarEmpresa() {
+    setEmpresa(null)
+    setConsultas([])
+    setCnpjInput('')
+    setErroCnpj('')
   }
 
   function handleAutorizar(consultaId: string, pergunta: string, proximas: boolean) {
@@ -167,29 +242,114 @@ export function IntelligenceWindow({ empresa }: Props) {
             >
               {empresa.nomeFantasia || empresa.razaoSocial}
             </div>
+            <div style={{ fontSize: 10, color: '#a89868', fontFamily: 'monospace' }}>
+              {formatCNPJ(empresa.cnpj)}
+            </div>
           </div>
         ) : (
           <span style={{ fontSize: 12, color: '#a89868', flex: 1 }}>
-            Abra uma ficha e clique em &quot;Analisar com IA&quot;
+            Digite um CNPJ para começar
           </span>
         )}
-        {consultas.length > 0 && (
-          <button
-            onClick={() => setConsultas([])}
-            title="Limpar histórico"
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              color: '#7a6a4a',
-              padding: 4,
-              display: 'flex',
-            }}
-          >
-            <Trash2 size={14} />
-          </button>
-        )}
+        <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+          {empresa && (
+            <button
+              onClick={handleTrocarEmpresa}
+              title="Trocar empresa"
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: '#7a6a4a',
+                padding: 4,
+                display: 'flex',
+              }}
+            >
+              <X size={14} />
+            </button>
+          )}
+          {consultas.length > 0 && (
+            <button
+              onClick={() => setConsultas([])}
+              title="Limpar histórico"
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: '#7a6a4a',
+                padding: 4,
+                display: 'flex',
+              }}
+            >
+              <Trash2 size={14} />
+            </button>
+          )}
+        </div>
       </div>
+
+      {/* Busca CNPJ — aparece quando não há empresa */}
+      {!empresa && (
+        <div style={{ padding: 14, borderBottom: '1px solid #ddd0b0', flexShrink: 0 }}>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <div style={{ position: 'relative', flex: 1 }}>
+              <Search
+                size={13}
+                color="#a89868"
+                style={{
+                  position: 'absolute',
+                  left: 10,
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  pointerEvents: 'none',
+                }}
+              />
+              <input
+                value={cnpjInput}
+                onChange={(e) => { setCnpjInput(e.target.value); setErroCnpj('') }}
+                onKeyDown={(e) => e.key === 'Enter' && buscarEmpresaPorCNPJ(cnpjInput)}
+                placeholder="Digite o CNPJ (ex: 00.000.000/0001-91)"
+                disabled={buscandoCnpj}
+                style={{
+                  width: '100%',
+                  padding: '9px 12px 9px 32px',
+                  background: '#fdf9f0',
+                  border: erroCnpj ? '1px solid #fca5a5' : '1px solid #c8b888',
+                  borderRadius: 8,
+                  fontSize: 13,
+                  color: '#2c2416',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                  fontFamily: 'monospace',
+                }}
+              />
+            </div>
+            <button
+              onClick={() => buscarEmpresaPorCNPJ(cnpjInput)}
+              disabled={buscandoCnpj || !cnpjInput.trim()}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                padding: '8px 14px',
+                fontSize: 12,
+                borderRadius: 8,
+                background: cnpjInput.trim() && !buscandoCnpj ? '#fbbf24' : '#ede8da',
+                color: cnpjInput.trim() && !buscandoCnpj ? '#1a1208' : '#a89868',
+                border: '1px solid #c8b888',
+                cursor: cnpjInput.trim() && !buscandoCnpj ? 'pointer' : 'not-allowed',
+                fontFamily: 'monospace',
+                fontWeight: 600,
+              }}
+            >
+              {buscandoCnpj ? <RefreshCw size={13} style={{ animation: 'ficha-spin 0.7s linear infinite' }} /> : <Search size={13} />}
+              Buscar
+            </button>
+          </div>
+          {erroCnpj && (
+            <div style={{ fontSize: 11, color: '#dc2626', marginTop: 6 }}>{erroCnpj}</div>
+          )}
+        </div>
+      )}
 
       {/* Conteúdo */}
       <div
@@ -201,6 +361,20 @@ export function IntelligenceWindow({ empresa }: Props) {
           WebkitOverflowScrolling: 'touch',
         }}
       >
+        {/* Estado vazio sem empresa */}
+        {!empresa && consultas.length === 0 && (
+          <div style={{ textAlign: 'center', paddingTop: 40 }}>
+            <Brain size={32} color="#c8b888" style={{ margin: '0 auto 12px' }} />
+            <p style={{ fontSize: 13, color: '#7a6a4a', margin: '0 0 6px' }}>
+              Módulo de Inteligência
+            </p>
+            <p style={{ fontSize: 11, color: '#a89868', margin: 0 }}>
+              Busque uma empresa pelo CNPJ acima ou digite um CNPJ no campo de mensagem
+            </p>
+          </div>
+        )}
+
+        {/* Perguntas sugeridas com empresa carregada */}
         {consultas.length === 0 && empresa && (
           <div style={{ textAlign: 'center', paddingTop: 24 }}>
             <p style={{ fontSize: 12, color: '#a89868', marginBottom: 16 }}>
@@ -310,7 +484,7 @@ export function IntelligenceWindow({ empresa }: Props) {
         ))}
       </div>
 
-      {/* Input */}
+      {/* Input — sempre visível, aceita CNPJ ou pergunta */}
       <div
         style={{
           padding: '10px 14px',
@@ -324,9 +498,10 @@ export function IntelligenceWindow({ empresa }: Props) {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleEnviar()}
-          disabled={!empresa}
           placeholder={
-            empresa ? 'pergunte sobre a empresa...' : 'selecione uma empresa primeiro'
+            empresa
+              ? 'pergunte sobre a empresa ou digite outro CNPJ...'
+              : 'digite um CNPJ ou busque acima...'
           }
           style={{
             flex: 1,
@@ -343,7 +518,7 @@ export function IntelligenceWindow({ empresa }: Props) {
         />
         <button
           onClick={handleEnviar}
-          disabled={!empresa || !input.trim()}
+          disabled={!input.trim()}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -351,13 +526,10 @@ export function IntelligenceWindow({ empresa }: Props) {
             padding: '8px 14px',
             fontSize: 12,
             borderRadius: 6,
-            background:
-              input.trim() && empresa ? '#fbbf24' : '#ede8da',
-            color:
-              input.trim() && empresa ? '#1a1208' : '#a89868',
+            background: input.trim() ? '#fbbf24' : '#ede8da',
+            color: input.trim() ? '#1a1208' : '#a89868',
             border: '1px solid #c8b888',
-            cursor:
-              input.trim() && empresa ? 'pointer' : 'not-allowed',
+            cursor: input.trim() ? 'pointer' : 'not-allowed',
             fontFamily: 'monospace',
             fontWeight: 600,
           }}
@@ -366,7 +538,10 @@ export function IntelligenceWindow({ empresa }: Props) {
         </button>
       </div>
 
-      <style>{`@keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: 0.4 } }`}</style>
+      <style>{`
+        @keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: 0.4 } }
+        @keyframes ficha-spin { to { transform: rotate(360deg) } }
+      `}</style>
     </div>
   )
 }
