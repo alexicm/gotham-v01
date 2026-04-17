@@ -1,0 +1,311 @@
+<style>
+  body { background: #d4c4a8; font-family: 'Courier New', monospace; padding: 16px; }
+  h2 { color: #2c2416; margin-bottom: 4px; }
+  .subtitle { color: #7a6a4a; margin-bottom: 20px; }
+
+  /* Window chrome */
+  .window { background: #f5f1e8; border: 1.5px solid #c8b888; border-radius: 10px; max-width: 660px; margin: 0 auto; box-shadow: 0 4px 18px rgba(44,36,22,0.18); overflow: hidden; }
+  .titlebar { background: #ede8da; border-bottom: 1px solid #c8b888; padding: 8px 12px; display: flex; align-items: center; gap: 8px; }
+  .dots { display: flex; gap: 5px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot-r { background: #ef4444; }
+  .dot-y { background: #fbbf24; }
+  .dot-g { background: #22c55e; }
+  .win-title { font-size: 11px; font-weight: 700; color: #2c2416; letter-spacing: 0.04em; margin-left: 4px; }
+  .win-body { padding: 16px; }
+
+  /* Tabs */
+  .tabs { display: flex; background: #ede8da; border-radius: 6px; padding: 3px; gap: 2px; margin-bottom: 14px; }
+  .tab { flex: 1; padding: 5px 4px; font-size: 9px; font-weight: 700; text-align: center; letter-spacing: 0.06em; color: #7a6a4a; border-radius: 4px; text-transform: uppercase; cursor: pointer; }
+  .tab.active { background: #fbbf24; color: #2c2416; }
+  .tab-badge { background: #d97706; color: white; border-radius: 3px; padding: 0 4px; font-size: 8px; margin-left: 2px; vertical-align: middle; }
+
+  /* Fields */
+  .field-label { font-size: 9px; font-weight: 700; letter-spacing: 0.08em; color: #7a6a4a; text-transform: uppercase; margin-bottom: 4px; }
+  .field-label .src { font-size: 8px; font-weight: 400; background: #ede8da; color: #a89868; border-radius: 3px; padding: 0 4px; margin-left: 4px; letter-spacing: 0; text-transform: none; }
+  .input { background: #faf8f2; border: 1px solid #c8b888; border-radius: 5px; padding: 6px 10px; font-size: 11px; font-family: 'Courier New', monospace; color: #2c2416; width: 100%; box-sizing: border-box; }
+  .input.active { border-color: #fbbf24; box-shadow: 0 0 0 2px rgba(251,191,36,0.2); }
+  .input-hint { font-size: 9px; color: #a89868; margin-top: 3px; }
+  .select { background: #faf8f2; border: 1px solid #c8b888; border-radius: 5px; padding: 6px 10px; font-size: 11px; font-family: 'Courier New', monospace; color: #2c2416; width: 100%; box-sizing: border-box; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23a89868'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; }
+  .row { display: flex; gap: 10px; }
+  .row .col { flex: 1; }
+  .mb { margin-bottom: 12px; }
+
+  /* Toggle chips */
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip { font-size: 10px; padding: 4px 10px; border-radius: 20px; border: 1px solid #c8b888; background: #faf8f2; color: #7a6a4a; cursor: pointer; font-family: 'Courier New', monospace; }
+  .chip.on { background: #fbbf24; border-color: #d97706; color: #2c2416; font-weight: 700; }
+  .chip.off { opacity: 0.6; }
+
+  /* Checkbox row */
+  .chk-row { display: flex; align-items: center; gap: 6px; font-size: 10px; color: #2c2416; margin-bottom: 6px; }
+  .chk { width: 12px; height: 12px; background: #faf8f2; border: 1.5px solid #c8b888; border-radius: 2px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+  .chk.on { background: #fbbf24; border-color: #d97706; }
+  .chk.on::after { content: '✓'; font-size: 9px; color: #2c2416; }
+
+  /* Terms tag */
+  .tag-area { background: #faf8f2; border: 1px solid #c8b888; border-radius: 5px; padding: 6px 10px; min-height: 36px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .tag { background: #ede8da; border: 1px solid #c8b888; border-radius: 4px; padding: 2px 8px; font-size: 10px; color: #2c2416; display: flex; align-items: center; gap: 4px; }
+  .tag-x { color: #a89868; cursor: pointer; }
+  .tag-input { border: none; background: transparent; font-size: 10px; font-family: 'Courier New', monospace; color: #2c2416; outline: none; min-width: 80px; }
+
+  /* Range */
+  .range-row { display: flex; gap: 6px; align-items: center; }
+  .range-row .input { flex: 1; }
+  .range-sep { font-size: 10px; color: #a89868; }
+
+  /* Submit */
+  .btn-primary { background: #fbbf24; border: none; border-radius: 6px; padding: 10px 20px; font-size: 12px; font-weight: 700; font-family: 'Courier New', monospace; color: #2c2416; cursor: pointer; width: 100%; margin-top: 4px; letter-spacing: 0.04em; }
+
+  /* Section divider */
+  .section-title { font-size: 9px; font-weight: 700; letter-spacing: 0.1em; color: #a89868; text-transform: uppercase; margin: 12px 0 8px 0; border-bottom: 1px solid #e0d8c8; padding-bottom: 4px; }
+
+  /* Tab content panels */
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* Radio */
+  .radio-group { display: flex; gap: 10px; flex-wrap: wrap; }
+  .radio-opt { display: flex; align-items: center; gap: 5px; font-size: 10px; color: #2c2416; cursor: pointer; }
+  .radio-dot { width: 12px; height: 12px; border-radius: 50%; border: 1.5px solid #c8b888; background: #faf8f2; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+  .radio-dot.on { border-color: #d97706; }
+  .radio-dot.on::after { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #fbbf24; display: block; }
+
+  /* Info note */
+  .note { background: #fffbeb; border: 1px solid #fbbf24; border-radius: 5px; padding: 6px 10px; font-size: 9px; color: #7a6a4a; margin-top: 8px; }
+  .note strong { color: #2c2416; }
+</style>
+
+<h2>Mockup — Janela de Busca com Abas</h2>
+<p class="subtitle">Todos os filtros organizados em 4 abas. Navegue abaixo para ver cada aba.</p>
+
+<!-- TAB SWITCHER (demo) -->
+<div style="display:flex;gap:8px;justify-content:center;margin-bottom:16px;flex-wrap:wrap;">
+  <button onclick="showTab('cnae')" id="btn-cnae" style="font-family:'Courier New',monospace;font-size:10px;padding:5px 14px;border-radius:5px;border:1px solid #c8b888;background:#fbbf24;color:#2c2416;font-weight:700;cursor:pointer;">Ver aba: CNAE</button>
+  <button onclick="showTab('empresa')" id="btn-empresa" style="font-family:'Courier New',monospace;font-size:10px;padding:5px 14px;border-radius:5px;border:1px solid #c8b888;background:#faf8f2;color:#7a6a4a;cursor:pointer;">Ver aba: Empresa</button>
+  <button onclick="showTab('localiz')" id="btn-localiz" style="font-family:'Courier New',monospace;font-size:10px;padding:5px 14px;border-radius:5px;border:1px solid #c8b888;background:#faf8f2;color:#7a6a4a;cursor:pointer;">Ver aba: Localização</button>
+  <button onclick="showTab('periodo')" id="btn-periodo" style="font-family:'Courier New',monospace;font-size:10px;padding:5px 14px;border-radius:5px;border:1px solid #c8b888;background:#faf8f2;color:#7a6a4a;cursor:pointer;">Ver aba: Contato & Período</button>
+</div>
+
+<div class="window">
+  <div class="titlebar">
+    <div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div>
+    <div class="win-title">🔍 nova_busca.cnae</div>
+  </div>
+  <div class="win-body">
+
+    <!-- TABS -->
+    <div class="tabs">
+      <div class="tab active" id="tab-cnae">CNAE & Termos</div>
+      <div class="tab" id="tab-empresa">Empresa <span class="tab-badge">4</span></div>
+      <div class="tab" id="tab-localiz">Localização</div>
+      <div class="tab" id="tab-periodo">Contato & Período</div>
+    </div>
+
+    <!-- PANEL 1: CNAE & Termos -->
+    <div class="panel active" id="panel-cnae">
+      <div class="mb">
+        <div class="field-label">Código CNAE <span class="src">Lista CNAE</span> <span style="color:#ef4444;font-size:9px;">*obrigatório</span></div>
+        <div class="input active">3250-7/06, 4774-1/00</div>
+        <div class="input-hint">Múltiplos CNAEs separados por vírgula</div>
+      </div>
+
+      <div class="mb">
+        <div class="field-label">CNPJs específicos <span class="src">Lista CNAE</span></div>
+        <div class="input" style="color:#a89868">00.000.000/0001-91, 46.729.632/0001...</div>
+        <div class="input-hint">Lista de CNPJs para filtrar (opcional)</div>
+      </div>
+
+      <div class="mb">
+        <div class="field-label">Palavras-chave <span class="src">Lista CNAE</span></div>
+        <div class="tag-area">
+          <div class="tag">Open Knowledge <span class="tag-x">×</span></div>
+          <div class="tag">Instituto <span class="tag-x">×</span></div>
+          <input class="tag-input" placeholder="+ adicionar termo...">
+        </div>
+        <div class="input-hint" style="margin-top:6px">Buscar em:
+          <span style="margin-left:4px;display:inline-flex;gap:8px;align-items:center">
+            <label style="display:flex;gap:4px;align-items:center;font-size:9px"><div class="chk on"></div> Razão Social</label>
+            <label style="display:flex;gap:4px;align-items:center;font-size:9px"><div class="chk on"></div> Nome Fantasia</label>
+          </span>
+        </div>
+      </div>
+
+      <div class="mb">
+        <div class="field-label">Opções</div>
+        <div style="display:flex;flex-direction:column;gap:5px;">
+          <div class="chk-row"><div class="chk on"></div> Incluir CNAEs secundários</div>
+          <div class="chk-row"><div class="chk"></div> Somente matrizes (ignorar filiais)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PANEL 2: Empresa -->
+    <div class="panel" id="panel-empresa">
+      <div class="mb">
+        <div class="field-label">Porte da empresa <span class="src">Lista CNAE</span></div>
+        <div class="chips">
+          <div class="chip on">Todos</div>
+          <div class="chip">Micro empresa</div>
+          <div class="chip">Pequeno porte</div>
+          <div class="chip">Demais</div>
+        </div>
+      </div>
+
+      <div class="mb">
+        <div class="field-label">Situação cadastral <span class="src">BrasilAPI</span></div>
+        <div class="chips">
+          <div class="chip on">Ativa</div>
+          <div class="chip">Suspensa</div>
+          <div class="chip">Inapta</div>
+          <div class="chip">Baixada</div>
+          <div class="chip">Nula</div>
+        </div>
+      </div>
+
+      <div class="mb">
+        <div class="field-label">Capital social <span class="src">Lista CNAE</span></div>
+        <div class="range-row">
+          <div class="input" style="text-align:center;color:#a89868">Mínimo (R$)</div>
+          <div class="range-sep">—</div>
+          <div class="input" style="text-align:center;color:#a89868">Máximo (R$)</div>
+        </div>
+      </div>
+
+      <div class="row mb">
+        <div class="col">
+          <div class="field-label">Simples Nacional <span class="src">Lista CNAE</span></div>
+          <div class="chips">
+            <div class="chip on">Ignorar</div>
+            <div class="chip">Apenas Simples</div>
+            <div class="chip">Excluir Simples</div>
+          </div>
+        </div>
+        <div class="col">
+          <div class="field-label">MEI <span class="src">Lista CNAE</span></div>
+          <div class="chips">
+            <div class="chip on">Ignorar</div>
+            <div class="chip">Apenas MEI</div>
+            <div class="chip">Excluir MEI</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="note"><strong>BrasilAPI:</strong> Situação cadastral requer consulta extra por CNPJ após a busca inicial. A busca pode ficar mais lenta dependendo do volume de resultados.</div>
+    </div>
+
+    <!-- PANEL 3: Localização -->
+    <div class="panel" id="panel-localiz">
+      <div class="mb">
+        <div class="field-label">Estado (UF) <span class="src">Lista CNAE</span></div>
+        <select class="select">
+          <option>Todos os estados</option>
+          <option selected>SP — São Paulo</option>
+          <option>RJ — Rio de Janeiro</option>
+        </select>
+        <div class="input-hint">Selecione um ou mais estados</div>
+      </div>
+
+      <div class="mb">
+        <div class="field-label">Município <span class="src">Lista CNAE</span></div>
+        <div class="input active">São Paulo</div>
+        <div class="input-hint">Nome do município (ex: Campinas, Curitiba)</div>
+      </div>
+
+      <div class="mb">
+        <div class="field-label">Registros por página <span class="src">Lista CNAE</span></div>
+        <div class="chips">
+          <div class="chip">10</div>
+          <div class="chip on">25</div>
+          <div class="chip">50</div>
+          <div class="chip">100</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PANEL 4: Contato & Período -->
+    <div class="panel" id="panel-periodo">
+      <div class="section-title">Contato</div>
+      <div class="mb">
+        <div class="field-label">Dados obrigatórios <span class="src">Lista CNAE</span></div>
+        <div style="display:flex;flex-direction:column;gap:5px;">
+          <div class="chk-row"><div class="chk on"></div> Somente empresas com telefone</div>
+          <div class="chk-row"><div class="chk"></div> Somente empresas com e-mail</div>
+        </div>
+      </div>
+
+      <div class="section-title">Período de Abertura</div>
+      <div class="mb">
+        <div class="field-label">Data de início das atividades <span class="src">Lista CNAE</span></div>
+        <div class="range-row">
+          <div class="input" style="color:#a89868">De: DD/MM/AAAA</div>
+          <div class="range-sep">—</div>
+          <div class="input" style="color:#a89868">Até: DD/MM/AAAA</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Submit -->
+    <div style="border-top:1px solid #e0d8c8;margin-top:8px;padding-top:14px;">
+      <button class="btn-primary">Buscar empresas</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- Column selector preview -->
+<div style="max-width:660px;margin:20px auto 0;">
+  <p style="font-size:11px;font-weight:700;color:#2c2416;margin-bottom:8px;">+ Tabela de resultados com colunas configuráveis:</p>
+  <div style="background:#f5f1e8;border:1.5px solid #c8b888;border-radius:8px;overflow:hidden;">
+    <div style="background:#ede8da;padding:6px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #c8b888;">
+      <span style="font-size:10px;color:#7a6a4a;font-weight:700;">resultados.cnae — 8.155 empresas</span>
+      <div style="display:flex;gap:6px;">
+        <span style="font-size:9px;background:#faf8f2;border:1px solid #c8b888;border-radius:4px;padding:3px 8px;color:#7a6a4a;cursor:pointer;">⊞ Colunas</span>
+        <span style="font-size:9px;background:#faf8f2;border:1px solid #c8b888;border-radius:4px;padding:3px 8px;color:#7a6a4a;cursor:pointer;">↓ CSV</span>
+        <span style="font-size:9px;background:#faf8f2;border:1px solid #c8b888;border-radius:4px;padding:3px 8px;color:#7a6a4a;cursor:pointer;">↓ JSON</span>
+      </div>
+    </div>
+    <div style="display:flex;background:#ede8da;font-size:9px;font-weight:700;letter-spacing:0.07em;color:#7a6a4a;text-transform:uppercase;border-bottom:1px solid #c8b888;">
+      <div style="flex:2;padding:6px 10px;border-right:1px solid #d4c4a8;">CNPJ</div>
+      <div style="flex:3;padding:6px 10px;border-right:1px solid #d4c4a8;">Razão Social</div>
+      <div style="flex:2;padding:6px 10px;border-right:1px solid #d4c4a8;">Município / UF</div>
+      <div style="flex:1;padding:6px 10px;border-right:1px solid #d4c4a8;">Porte</div>
+      <div style="flex:1;padding:6px 10px;border-right:1px solid #d4c4a8;">Situação</div>
+      <div style="flex:1;padding:6px 10px;">Ação</div>
+    </div>
+    <div style="display:flex;font-size:10px;color:#2c2416;border-bottom:1px solid #ede8da;align-items:center;">
+      <div style="flex:2;padding:8px 10px;border-right:1px solid #ede8da;font-size:9px;">11.811.126/0001</div>
+      <div style="flex:3;padding:8px 10px;border-right:1px solid #ede8da;font-weight:700;font-size:10px;">ODONTIS ODONTOLOGIA</div>
+      <div style="flex:2;padding:8px 10px;border-right:1px solid #ede8da;font-size:9px;">São Paulo / SP</div>
+      <div style="flex:1;padding:8px 10px;border-right:1px solid #ede8da;font-size:9px;">EPP</div>
+      <div style="flex:1;padding:8px 10px;border-right:1px solid #ede8da;"><span style="background:#dcfce7;color:#166534;border-radius:3px;padding:2px 6px;font-size:8px;font-weight:700;">ATIVA</span></div>
+      <div style="flex:1;padding:8px 10px;"><span style="background:#fbbf24;color:#2c2416;border-radius:4px;padding:3px 8px;font-size:9px;font-weight:700;cursor:pointer;">Ficha</span></div>
+    </div>
+    <div style="display:flex;font-size:10px;color:#2c2416;align-items:center;opacity:0.5;">
+      <div style="flex:2;padding:8px 10px;border-right:1px solid #ede8da;font-size:9px;">31.272.999/0001</div>
+      <div style="flex:3;padding:8px 10px;border-right:1px solid #ede8da;font-weight:700;">APROLAB</div>
+      <div style="flex:2;padding:8px 10px;border-right:1px solid #ede8da;font-size:9px;">Campinas / SP</div>
+      <div style="flex:1;padding:8px 10px;border-right:1px solid #ede8da;font-size:9px;">ME</div>
+      <div style="flex:1;padding:8px 10px;border-right:1px solid #ede8da;"><span style="background:#dcfce7;color:#166534;border-radius:3px;padding:2px 6px;font-size:8px;font-weight:700;">ATIVA</span></div>
+      <div style="flex:1;padding:8px 10px;"><span style="background:#fbbf24;color:#2c2416;border-radius:4px;padding:3px 8px;font-size:9px;font-weight:700;cursor:pointer;">Ficha</span></div>
+    </div>
+  </div>
+  <p style="font-size:9px;color:#7a6a4a;margin-top:6px;">Clicar na linha ou no botão "Ficha" abre a janela detalhada da empresa.</p>
+</div>
+
+<script>
+function showTab(name) {
+  ['cnae','empresa','localiz','periodo'].forEach(t => {
+    document.getElementById('panel-'+t).classList.remove('active');
+    document.getElementById('tab-'+t).classList.remove('active');
+    document.getElementById('btn-'+t).style.background = '#faf8f2';
+    document.getElementById('btn-'+t).style.color = '#7a6a4a';
+    document.getElementById('btn-'+t).style.fontWeight = 'normal';
+  });
+  document.getElementById('panel-'+name).classList.add('active');
+  document.getElementById('tab-'+name).classList.add('active');
+  document.getElementById('btn-'+name).style.background = '#fbbf24';
+  document.getElementById('btn-'+name).style.color = '#2c2416';
+  document.getElementById('btn-'+name).style.fontWeight = '700';
+}
+</script>

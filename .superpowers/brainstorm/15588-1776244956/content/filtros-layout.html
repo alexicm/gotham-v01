@@ -1,0 +1,141 @@
+<style>
+  body { background: #d4c4a8; font-family: 'Courier New', monospace; }
+  h2 { color: #2c2416; }
+  .subtitle { color: #7a6a4a; }
+
+  .cards { display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; margin-top: 16px; }
+  .card { background: #f5f1e8; border: 1.5px solid #c8b888; border-radius: 10px; width: 300px; cursor: pointer; overflow: hidden; transition: box-shadow 0.15s; }
+  .card:hover { box-shadow: 0 4px 16px rgba(44,36,22,0.18); }
+  .card.selected { border-color: #fbbf24; box-shadow: 0 0 0 2px #fbbf24; }
+  .card-label { background: #ede8da; border-bottom: 1px solid #c8b888; padding: 8px 14px; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: #7a6a4a; text-transform: uppercase; display: flex; justify-content: space-between; align-items: center; }
+  .card-label span.badge { background: #fbbf24; color: #2c2416; border-radius: 4px; padding: 1px 7px; font-size: 10px; }
+  .card-body { padding: 14px; }
+
+  /* Option A - Accordion */
+  .acc-group { border: 1px solid #c8b888; border-radius: 6px; margin-bottom: 6px; overflow: hidden; }
+  .acc-header { background: #ede8da; padding: 6px 10px; font-size: 10px; font-weight: 700; letter-spacing: 0.07em; color: #7a6a4a; text-transform: uppercase; display: flex; justify-content: space-between; }
+  .acc-header .arrow { color: #a89868; }
+  .acc-body { padding: 8px 10px; display: flex; flex-direction: column; gap: 5px; }
+  .acc-field { background: #faf8f2; border: 1px solid #d4c4a8; border-radius: 4px; padding: 4px 8px; font-size: 10px; color: #2c2416; }
+  .acc-field.active { border-color: #fbbf24; }
+  .acc-row { display: flex; gap: 5px; }
+  .acc-row .acc-field { flex: 1; }
+
+  /* Option B - Tabs */
+  .tab-bar { display: flex; gap: 2px; background: #ede8da; padding: 4px; border-radius: 6px; margin-bottom: 8px; }
+  .tab { flex: 1; padding: 4px 2px; font-size: 9px; font-weight: 700; text-align: center; letter-spacing: 0.04em; color: #7a6a4a; border-radius: 4px; text-transform: uppercase; }
+  .tab.active { background: #fbbf24; color: #2c2416; }
+  .tab-content { background: #faf8f2; border: 1px solid #d4c4a8; border-radius: 6px; padding: 10px; }
+  .tab-field { background: white; border: 1px solid #c8b888; border-radius: 4px; padding: 4px 8px; font-size: 10px; color: #2c2416; margin-bottom: 5px; }
+  .tab-row { display: flex; gap: 5px; }
+  .tab-row .tab-field { flex: 1; }
+  .tab-hint { font-size: 9px; color: #a89868; margin-top: 6px; text-align: center; }
+
+  /* Option C - Side panel drawer */
+  .drawer { display: flex; gap: 0; border: 1px solid #c8b888; border-radius: 6px; overflow: hidden; height: 220px; }
+  .drawer-nav { width: 80px; background: #ede8da; border-right: 1px solid #c8b888; display: flex; flex-direction: column; }
+  .drawer-item { padding: 7px 6px; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #7a6a4a; border-bottom: 1px solid #d4c4a8; text-align: center; cursor: pointer; }
+  .drawer-item.active { background: #fbbf24; color: #2c2416; }
+  .drawer-content { flex: 1; padding: 10px; overflow-y: auto; background: #faf8f2; display: flex; flex-direction: column; gap: 5px; }
+  .d-field { background: white; border: 1px solid #c8b888; border-radius: 4px; padding: 4px 8px; font-size: 10px; color: #2c2416; }
+  .d-row { display: flex; gap: 5px; }
+  .d-row .d-field { flex: 1; }
+  .d-label { font-size: 9px; color: #a89868; text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
+
+  .rec { font-size: 10px; background: #fbbf24; color: #2c2416; border-radius: 4px; padding: 2px 8px; display: inline-block; margin-top: 8px; font-weight: 700; }
+</style>
+
+<h2>Como organizar os filtros de busca?</h2>
+<p class="subtitle">Os filtros foram agrupados em 6 categorias. Qual organização prefere?</p>
+
+<div class="cards">
+
+  <!-- OPTION A: Accordion -->
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-label">A — Accordion expansível <span class="badge">+simples</span></div>
+    <div class="card-body">
+      <div class="acc-group">
+        <div class="acc-header">Identificação <span class="arrow">▾</span></div>
+        <div class="acc-body">
+          <div class="acc-field active">CNAE: 3250-7/06</div>
+          <div class="acc-field">CNPJs específicos</div>
+          <div class="acc-field">Termos na razão social</div>
+        </div>
+      </div>
+      <div class="acc-group">
+        <div class="acc-header">Localização <span class="arrow">▸</span></div>
+      </div>
+      <div class="acc-group">
+        <div class="acc-header">Empresa <span class="arrow">▸</span></div>
+      </div>
+      <div class="acc-group">
+        <div class="acc-header">Fiscal <span class="arrow">▸</span></div>
+      </div>
+      <p style="font-size:9px;color:#a89868;margin-top:6px">Grupos colapsados por padrão, expandidos ao clicar</p>
+    </div>
+  </div>
+
+  <!-- OPTION B: Tabs -->
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-label">B — Abas por categoria <span class="badge">+organizado</span></div>
+    <div class="card-body">
+      <div class="tab-bar">
+        <div class="tab active">Busca</div>
+        <div class="tab">Local</div>
+        <div class="tab">Empresa</div>
+        <div class="tab">Fiscal</div>
+      </div>
+      <div class="tab-content">
+        <div class="tab-field active">CNAE: 3250-7/06</div>
+        <div class="tab-field">CNPJs específicos</div>
+        <div class="tab-row">
+          <div class="tab-field">Data início</div>
+          <div class="tab-field">Data fim</div>
+        </div>
+        <div class="tab-field">Termos na razão social / fantasia</div>
+      </div>
+      <p class="tab-hint">4 abas, cada uma agrupa filtros relacionados</p>
+    </div>
+  </div>
+
+  <!-- OPTION C: Drawer side nav -->
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-label">C — Painel lateral deslizante <span class="badge">+compacto</span></div>
+    <div class="card-body">
+      <div class="drawer">
+        <div class="drawer-nav">
+          <div class="drawer-item active">Busca</div>
+          <div class="drawer-item">Local</div>
+          <div class="drawer-item">Empresa</div>
+          <div class="drawer-item">Fiscal</div>
+          <div class="drawer-item">Contato</div>
+          <div class="drawer-item">Período</div>
+        </div>
+        <div class="drawer-content">
+          <div class="d-label">Categoria principal</div>
+          <div class="d-field active">CNAE: 3250-7/06</div>
+          <div class="d-field">CNPJs específicos</div>
+          <div class="d-label">Termos</div>
+          <div class="d-field">Razão Social / Fantasia</div>
+          <div class="d-row">
+            <div class="d-field">Somente matrizes</div>
+          </div>
+        </div>
+      </div>
+      <p style="font-size:9px;color:#a89868;margin-top:6px">Nav lateral fixa, conteúdo muda ao clicar na categoria</p>
+    </div>
+  </div>
+
+</div>
+
+<div style="margin-top:20px;padding:12px 16px;background:#faf8f2;border:1px solid #c8b888;border-radius:8px;max-width:680px;margin-left:auto;margin-right:auto;">
+  <p style="font-size:11px;color:#2c2416;margin:0 0 4px 0;font-weight:700;">Filtros que serão incluídos:</p>
+  <p style="font-size:10px;color:#7a6a4a;margin:0;line-height:1.7">
+    <b>Busca:</b> CNAE, CNPJs, termos (razão/fantasia), somente matrizes &nbsp;|&nbsp;
+    <b>Localização:</b> UF, Município &nbsp;|&nbsp;
+    <b>Empresa:</b> Porte, Situação cadastral, Capital social (min/max) &nbsp;|&nbsp;
+    <b>Fiscal:</b> Simples Nacional, MEI &nbsp;|&nbsp;
+    <b>Contato:</b> Telefone obrigatório, Email obrigatório &nbsp;|&nbsp;
+    <b>Período:</b> Data de abertura (início/fim)
+  </p>
+</div>
