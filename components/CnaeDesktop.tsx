@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { useEnrichment } from '@/hooks/useEnrichment'
 import {
   Search, Terminal, FileText, Building2, Clock, BarChart2,
-  X, Minus, Maximize2, GripVertical, LogOut, ShieldCheck, User, Brain
+  X, Minus, Maximize2, GripVertical, LogOut, ShieldCheck, User, Brain, RefreshCw
 } from 'lucide-react'
 import { BuscaWindow } from './windows/BuscaWindow'
 import { ResultadosWindow } from './windows/ResultadosWindow'
@@ -490,7 +490,7 @@ function CnaeDesktopOS({ onLogout }: { onLogout?: () => void }) {
     const paginar = async (pagina: number) => {
       const p = lastParamsRef.current
       if (!p) return
-      const cnaes = (p.cnae ?? '').split(/[,\s]+/).map(c => parseInt(c.replace(/\D/g, ''), 10)).filter(Boolean)
+      const cnaes = (p.cnae ?? '').split(/[,\s]+/).map(c => parseInt(c.replace(/\D/g, ''), 10)).filter(n => !isNaN(n) && n > 0)
       const porPagina = p.porPagina ?? 50
 
       const payload: Record<string, unknown> = {
@@ -498,7 +498,8 @@ function CnaeDesktopOS({ onLogout }: { onLogout?: () => void }) {
         inicio: (pagina - 1) * porPagina,
         quantidade: porPagina,
       }
-      if (p.uf) payload.estados = [p.uf.toUpperCase()]
+      if (p.ufs && p.ufs.length > 0) payload.estados = p.ufs
+      else if (p.uf) payload.estados = [p.uf.toUpperCase()]
       if (p.cnpjs) payload.cnpjs = p.cnpjs.split(/[,\s]+/).map(s => s.trim()).filter(Boolean)
       if (p.termosBusca) payload.termos_busca = p.termosBusca.split(',').map(t => ({ termo: t.trim(), tipo: p.termoBuscaEm ?? 'A' }))
       if (p.incluirCnaesSecundarios) payload.incluir_cnaes_secundarios = true
@@ -691,6 +692,27 @@ function CnaeDesktopOS({ onLogout }: { onLogout?: () => void }) {
               {item.label}
             </button>
           ))}
+          <button
+            onClick={() => window.location.reload()}
+            title="Recarregar sistema"
+            style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              padding: '4px 10px',
+              background: 'transparent',
+              border: 'none',
+              borderRadius: 5,
+              fontSize: 12,
+              color: '#2c2416',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              fontWeight: 500,
+            }}
+            onMouseEnter={e => (e.currentTarget.style.background = '#e0d8c4')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+          >
+            <RefreshCw size={11} />
+            Refresh
+          </button>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>

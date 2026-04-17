@@ -77,7 +77,8 @@ export function BuscaWindow({ onResultados, onLoadingChange }: Props) {
   const [aba, setAba] = useState<'cnae' | 'empresa' | 'localiz' | 'periodo'>('cnae')
 
   // Aba 1 — CNAE & Termos
-  const [cnae, setCnae] = useState('')
+  const [cnaeInput, setCnaeInput] = useState('')
+  const [cnaes, setCnaes] = useState<string[]>([])
   const [cnpjs, setCnpjs] = useState('')
   const [termoInput, setTermoInput] = useState('')
   const [termos, setTermos] = useState<string[]>([])
@@ -94,7 +95,7 @@ export function BuscaWindow({ onResultados, onLoadingChange }: Props) {
   const [mei, setMei] = useState<'ignorar' | 'apenas' | 'excluir'>('ignorar')
 
   // Aba 3 — Localização
-  const [uf, setUf] = useState('')
+  const [ufs, setUfs] = useState<string[]>([])
   const [municipio, setMunicipio] = useState('')
   const [porPagina, setPorPagina] = useState(50)
 
@@ -114,24 +115,32 @@ export function BuscaWindow({ onResultados, onLoadingChange }: Props) {
   function toggleSituacao(s: string) {
     setFiltroSituacoes(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s])
   }
+  function toggleUf(u: string) {
+    setUfs(prev => prev.includes(u) ? prev.filter(x => x !== u) : [...prev, u])
+  }
   function adicionarTermo() {
     const t = termoInput.trim()
     if (t && !termos.includes(t)) setTermos(prev => [...prev, t])
     setTermoInput('')
   }
+  function adicionarCnae() {
+    const c = cnaeInput.trim().replace(/\D/g, '')
+    if (c && !cnaes.includes(c)) setCnaes(prev => [...prev, c])
+    setCnaeInput('')
+  }
 
   // ─ Submit ─
   async function handleBuscar(e: React.FormEvent) {
     e.preventDefault()
-    if (!cnae.trim()) { setError('Informe ao menos um CNAE.'); return }
+    if (cnaes.length === 0) { setError('Informe ao menos um CNAE.'); return }
     setError('')
     setLoading(true)
     onLoadingChange?.(true)
 
-    const cnaes = cnae.trim().split(/[,\s]+/).map(c => parseInt(c.replace(/\D/g, ''), 10)).filter(Boolean)
+    const cnaesNum = cnaes.map(c => parseInt(c, 10)).filter(Boolean)
 
     const payload: Record<string, unknown> = {
-      cnaes,
+      cnaes: cnaesNum,
       inicio: 0,
       quantidade: porPagina,
     }
@@ -144,7 +153,7 @@ export function BuscaWindow({ onResultados, onLoadingChange }: Props) {
     }
     if (incluirSecundarios) payload.incluir_cnaes_secundarios = true
     if (somenteMatrizes) payload.somente_matrizes = true
-    if (uf) payload.estados = [uf.toUpperCase()]
+    if (ufs.length > 0) payload.estados = ufs
     if (capitalMin) payload.capital_social_minimo = Number(capitalMin)
     if (capitalMax) payload.capital_social_maximo = Number(capitalMax)
     if (simples === 'apenas') payload.simples_nacional = true
@@ -157,14 +166,15 @@ export function BuscaWindow({ onResultados, onLoadingChange }: Props) {
     if (dataFim) payload.data_fim = dataFim
 
     const params: BuscaParams = {
-      cnae: cnae.trim(), cnpjs: cnpjs.trim() || undefined,
+      cnae: cnaes.join(','), cnpjs: cnpjs.trim() || undefined,
       termosBusca: termos.join(',') || undefined, termoBuscaEm,
       incluirCnaesSecundarios: incluirSecundarios || undefined,
       somenteMatrizes: somenteMatrizes || undefined,
       simplesNacional: simples, mei,
       capitalSocialMinimo: capitalMin ? Number(capitalMin) : undefined,
       capitalSocialMaximo: capitalMax ? Number(capitalMax) : undefined,
-      uf: uf || undefined, municipio: municipio.trim() || undefined,
+      ufs: ufs.length > 0 ? ufs : undefined,
+      municipio: municipio.trim() || undefined,
       porPagina, pagina: 1,
       telefoneObrigatorio: telefoneObrigatorio || undefined,
       emailObrigatorio: emailObrigatorio || undefined,
@@ -192,9 +202,9 @@ export function BuscaWindow({ onResultados, onLoadingChange }: Props) {
 
   // ─ Tabs ─
   const tabs: { id: typeof aba; label: string; badge?: number }[] = [
-    { id: 'cnae', label: 'CNAE & Termos' },
+    { id: 'cnae', label: 'CNAE & Termos', badge: cnaes.length || undefined },
     { id: 'empresa', label: 'Empresa', badge: [filtroPortes.length, filtroSituacoes.length].reduce((a, b) => a + b, 0) || undefined },
-    { id: 'localiz', label: 'Localização' },
+    { id: 'localiz', label: 'Localização', badge: ufs.length || undefined },
     { id: 'periodo', label: 'Contato & Período' },
   ]
 
@@ -257,19 +267,26 @@ export function BuscaWindow({ onResultados, onLoadingChange }: Props) {
           {aba === 'cnae' && (
             <>
               <div>
-                <label style={labelStyle}>Código CNAE *</label>
-                <input
-                  className="busca-input"
-                  style={inputStyle}
-                  type="text"
-                  placeholder="Ex: 6201500, 4530703"
-                  value={cnae}
-                  onChange={e => setCnae(e.target.value)}
-                  required
-                  autoComplete="off"
-                />
+                <label style={labelStyle}>Código CNAE * <span style={{ fontWeight: 400, textTransform: 'none', fontSize: 9 }}>({cnaes.length === 0 ? 'nenhum' : `${cnaes.length} selecionado${cnaes.length > 1 ? 's' : ''}`})</span></label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, background: '#fdf9f0', border: `1px solid ${cnaes.length === 0 ? '#e09090' : '#c8b888'}`, borderRadius: 8, padding: '7px 10px', minHeight: 44, alignItems: 'center' }}>
+                  {cnaes.map(c => (
+                    <span key={c} style={{ background: '#fef3c7', border: '1px solid #fbbf24', borderRadius: 4, padding: '2px 8px', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4, color: '#92400e' }}>
+                      {c}
+                      <X size={10} style={{ cursor: 'pointer', color: '#d97706' }} onClick={() => setCnaes(prev => prev.filter(x => x !== c))} />
+                    </span>
+                  ))}
+                  <input
+                    value={cnaeInput}
+                    onChange={e => setCnaeInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ',' || e.key === ' ') { e.preventDefault(); adicionarCnae() } }}
+                    onBlur={adicionarCnae}
+                    placeholder={cnaes.length === 0 ? 'Digite o código CNAE e pressione Enter...' : '+ adicionar CNAE...'}
+                    style={{ border: 'none', background: 'transparent', fontFamily: 'inherit', fontSize: 12, outline: 'none', color: '#2c2416', minWidth: 160, flex: 1 }}
+                    autoComplete="off"
+                  />
+                </div>
                 <p style={{ fontSize: 10, color: '#a89868', marginTop: 3 }}>
-                  Múltiplos CNAEs separados por vírgula
+                  Pressione Enter, vírgula ou espaço para adicionar cada CNAE
                 </p>
               </div>
               <div>
@@ -366,19 +383,50 @@ export function BuscaWindow({ onResultados, onLoadingChange }: Props) {
           {aba === 'localiz' && (
             <>
               <div>
-                <label style={labelStyle}>Estado (UF)</label>
-                <div style={{ position: 'relative' }}>
-                  <select
-                    className="busca-select"
-                    style={{ ...inputStyle, paddingRight: 36, cursor: 'pointer' }}
-                    value={uf}
-                    onChange={e => setUf(e.target.value)}
-                  >
-                    <option value="">Todos os estados</option>
-                    {UFS.map(u => <option key={u} value={u}>{u}</option>)}
-                  </select>
-                  <svg style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} width="10" height="6" viewBox="0 0 10 6"><path d="M0 0l5 6 5-6z" fill="#a89868" /></svg>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <label style={{ ...labelStyle, marginBottom: 0 }}>
+                    Estados {ufs.length > 0 ? <span style={{ fontWeight: 400, textTransform: 'none' }}>({ufs.length} selecionado{ufs.length > 1 ? 's' : ''})</span> : <span style={{ fontWeight: 400, textTransform: 'none' }}>— todos</span>}
+                  </label>
+                  {ufs.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setUfs([])}
+                      style={{ fontSize: 10, color: '#d97706', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: '0 2px' }}
+                    >
+                      Limpar
+                    </button>
+                  )}
                 </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4 }}>
+                  {UFS.map(u => {
+                    const active = ufs.includes(u)
+                    return (
+                      <button
+                        key={u}
+                        type="button"
+                        onClick={() => toggleUf(u)}
+                        style={{
+                          padding: '6px 4px',
+                          borderRadius: 6,
+                          fontSize: 11,
+                          fontWeight: active ? 700 : 500,
+                          border: `1px solid ${active ? '#d97706' : '#d0c8b0'}`,
+                          background: active ? '#fbbf24' : '#faf8f2',
+                          color: active ? '#2c2416' : '#7a6a4a',
+                          cursor: 'pointer',
+                          fontFamily: 'inherit',
+                          textAlign: 'center',
+                          transition: 'all 0.1s',
+                        }}
+                      >
+                        {u}
+                      </button>
+                    )
+                  })}
+                </div>
+                <p style={{ fontSize: 10, color: '#a89868', marginTop: 5 }}>
+                  Nenhum selecionado = todos os estados
+                </p>
               </div>
               <div>
                 <label style={labelStyle}>Município <span style={{ fontWeight: 400, textTransform: 'none', fontSize: 9 }}>(filtro local)</span></label>

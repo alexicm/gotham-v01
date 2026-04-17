@@ -2,8 +2,11 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import dynamic from 'next/dynamic'
 import { BarChart2, Eye, EyeOff, LogIn } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+
+const FaultyTerminal = dynamic(() => import('./FaultyTerminal'), { ssr: false })
 
 function formatCPF(value: string) {
   const digits = value.replace(/\D/g, '').slice(0, 11)
@@ -86,7 +89,7 @@ export function LoginScreen({ onLogin }: Props) {
   if (loading) {
     return (
       <div style={styles.overlay}>
-        <div style={styles.bgDots} />
+        <div style={styles.bgTerminal}><FaultyTerminal scale={1.5} gridMul={[2,1]} digitSize={1.2} timeScale={0.4} scanlineIntensity={0.6} glitchAmount={0.6} flickerAmount={0.7} noiseAmp={1} curvature={0.08} tint="#d97706" mouseReact={false} pageLoadAnimation brightness={0.45} /></div>
         <svg width="200" height="200" viewBox="0 0 40 60">
           <polygon
             className="gtm-triangle"
@@ -98,7 +101,7 @@ export function LoginScreen({ onLogin }: Props) {
             Autenticando...
           </text>
         </svg>
-        <span style={{ fontSize: 10, color: '#8a7a5a', marginTop: -32, letterSpacing: '0.1em' }}>
+        <span style={{ fontSize: 10, color: '#a89868', marginTop: -32, letterSpacing: '0.1em' }}>
           GOTHAM v0.1
         </span>
       </div>
@@ -107,7 +110,7 @@ export function LoginScreen({ onLogin }: Props) {
 
   return (
     <div style={styles.overlay}>
-      <div style={styles.bgDots} />
+      <div style={styles.bgTerminal}><FaultyTerminal scale={1.5} gridMul={[2,1]} digitSize={1.2} timeScale={0.4} scanlineIntensity={0.6} glitchAmount={0.6} flickerAmount={0.7} noiseAmp={1} curvature={0.08} tint="#d97706" mouseReact mouseStrength={0.4} pageLoadAnimation brightness={0.45} /></div>
       <div style={{ ...styles.card, ...(shake ? styles.shake : {}) }}>
         <div style={styles.titleBar}>
           <div style={styles.trafficLights}>
@@ -165,9 +168,9 @@ export function LoginScreen({ onLogin }: Props) {
 }
 
 const styles: Record<string, React.CSSProperties> = {
-  overlay: { position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#d4c4a8', zIndex: 9999, padding: 16 },
-  bgDots: { position: 'absolute', inset: 0, backgroundImage: 'radial-gradient(#c2b090 1px, transparent 1px)', backgroundSize: '20px 20px', pointerEvents: 'none' },
-  card: { position: 'relative', width: '100%', maxWidth: 380, background: '#f5f1e8', border: '1.5px solid #c8b888', borderRadius: 10, boxShadow: '0 8px 32px rgba(44,36,22,0.18)', overflow: 'hidden', transition: 'transform 0.1s' },
+  overlay: { position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#100d06', zIndex: 9999, padding: 16 },
+  bgTerminal: { position: 'absolute', inset: 0, pointerEvents: 'none' },
+  card: { position: 'relative', width: '100%', maxWidth: 380, background: 'rgba(245,241,232,0.93)', border: '1.5px solid #c8b888', borderRadius: 10, boxShadow: '0 8px 48px rgba(217,119,6,0.25), 0 2px 12px rgba(0,0,0,0.5)', overflow: 'hidden', transition: 'transform 0.1s', backdropFilter: 'blur(2px)' },
   shake: { animation: 'shake 0.45s ease' },
   titleBar: { display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: '#ede8da', borderBottom: '1px solid #c8b888' },
   trafficLights: { display: 'flex', gap: 6 },

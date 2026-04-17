@@ -99,20 +99,40 @@ export async function POST(req: NextRequest) {
     const paginaAtual = Math.floor(inicio / quantidade) + 1
     const ultimaPagina = Math.ceil(totalEncontrado / quantidade) || 1
 
-    const empresas: Empresa[] = lista.map((e) => ({
-      cnpj:          String(e.cnpj ?? e.nu_cnpj ?? '').replace(/\D/g, ''),
-      razaoSocial:   String(e.razao_social ?? e.no_razao_social ?? ''),
-      nomeFantasia:  String(e.nome_fantasia ?? e.no_nome_fantasia ?? e.razao_social ?? ''),
-      cnae:          String(e.cnae_principal ?? e.co_cnae_principal ?? cnaes[0] ?? ''),
-      descricaoCnae: String(e.descricao_cnae ?? e.ds_cnae_principal ?? ''),
-      municipio:     String(e.municipio ?? e.no_municipio ?? ''),
-      uf:            String(e.uf ?? e.sg_uf ?? ''),
-      situacao:      String(e.situacao ?? e.ds_situacao_cadastral ?? 'ATIVA'),
-      capitalSocial: Number(e.capital_social ?? e.vl_capital_social ?? 0),
-      porte:         String(e.porte ?? e.ds_porte ?? ''),
-      email:         e.email ? String(e.email) : undefined,
-      telefone:      e.telefone ?? e.nu_ddd_telefone ? String(e.telefone ?? e.nu_ddd_telefone) : undefined,
-    }))
+    const empresas: Empresa[] = lista.map((e) => {
+      const endereco = e.endereco as Record<string, unknown> | undefined
+      const capitalRaw = String(e.capital_social ?? '0').replace(',', '.').replace(/[^\d.]/g, '')
+      const ddd1 = e.telefone_ddd_1 ? String(e.telefone_ddd_1) : ''
+      const num1 = e.telefone_numero_1 ? String(e.telefone_numero_1) : ''
+      const telefone = ddd1 && num1 ? `(${ddd1}) ${num1}` : num1 || undefined
+      const dataInicio = (e.inicio_atividade as Record<string, unknown> | undefined)?.formato_date
+        ? String((e.inicio_atividade as Record<string, unknown>).formato_date).substring(0, 10)
+        : undefined
+
+      return {
+        cnpj:          String(e.cnpj ?? '').replace(/\D/g, ''),
+        razaoSocial:   String(e.razao_social ?? ''),
+        nomeFantasia:  String(e.nome_fantasia || (e.razao_social ?? '')),
+        cnae:          String(e.cnae_primario ?? cnaes[0] ?? ''),
+        descricaoCnae: '',
+        municipio:     String(endereco?.municipio ?? ''),
+        uf:            String(endereco?.uf ?? ''),
+        situacao:      String(e.situacao ?? 'ATIVA'),
+        capitalSocial: parseFloat(capitalRaw) || 0,
+        porte:         String(e.porte ?? ''),
+        email:         e.email ? String(e.email) : undefined,
+        telefone,
+        logradouro:    endereco ? [endereco.tipo, endereco.logradouro].filter(Boolean).join(' ') : undefined,
+        numero:        endereco?.numero ? String(endereco.numero) : undefined,
+        complemento:   endereco?.complemento ? String(endereco.complemento).trim() || undefined : undefined,
+        bairro:        endereco?.bairro ? String(endereco.bairro) : undefined,
+        cep:           endereco?.cep ? String(endereco.cep) : undefined,
+        dataInicio,
+        naturezaJuridica: e.natureza_juridica_descricao ? String(e.natureza_juridica_descricao) : undefined,
+        optanteSimples: e.simples != null ? Boolean(e.simples) : undefined,
+        optanteMei:    e.mei != null ? Boolean(e.mei) : undefined,
+      }
+    })
 
     const result: BuscaResult = {
       empresas,

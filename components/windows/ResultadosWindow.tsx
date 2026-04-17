@@ -220,16 +220,19 @@ export function ResultadosWindow({ resultado, onAbrirFicha, onPaginar, loadingPa
     const filtroPortes = buscaParams?.filtroPortes ?? []
     const filtroSituacoes = buscaParams?.filtroSituacoes ?? []
     const filtroMunicipio = (buscaParams?.municipio ?? '').toLowerCase()
+    const filtroUfs = buscaParams?.ufs ?? []
 
     return empresas.filter(e => {
       const enriched = enrichedMap?.get(e.cnpj)
       const situacao = (enriched?.situacao ?? e.situacao ?? '').toUpperCase()
       const porte = enriched?.porte ?? e.porte ?? ''
       const municipioEmpresa = (enriched?.municipio ?? e.municipio ?? '').toLowerCase()
+      const ufEmpresa = (enriched?.uf ?? e.uf ?? '').toUpperCase()
 
       if (filtroPortes.length > 0 && !filtroPortes.some(p => porte.toUpperCase().includes(p))) return false
       if (filtroSituacoes.length > 0 && !filtroSituacoes.includes(situacao)) return false
       if (filtroMunicipio && !municipioEmpresa.includes(filtroMunicipio)) return false
+      if (filtroUfs.length > 0 && !filtroUfs.includes(ufEmpresa)) return false
 
       return !q ||
         e.razaoSocial.toLowerCase().includes(q) ||

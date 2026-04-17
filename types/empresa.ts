@@ -90,7 +90,8 @@ export interface BuscaParams {
   dataInicio?: string            // ISO date YYYY-MM-DD
   dataFim?: string               // ISO date YYYY-MM-DD
   // Localização
-  uf?: string                    // código UF (ex: "SP")
+  uf?: string                    // código UF (ex: "SP") — legado, usar ufs
+  ufs?: string[]                 // múltiplos estados selecionados (ex: ["SP","RJ"])
   municipio?: string             // texto livre (filtro frontend apenas)
   // Paginação/quantidade
   pagina?: number
