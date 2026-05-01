@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 
 import { Analytics } from '@vercel/analytics/next'
+import Script from 'next/script'
 import './globals.css'
 
 import { Geist, Geist_Mono } from 'next/font/google'
@@ -48,26 +49,22 @@ export default function RootLayout({
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}>
         {children}
         <Analytics />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              if ('serviceWorker' in navigator) {
-                window.addEventListener('load', function () {
-                  navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).then(function (reg) {
-                    reg.update();
-                    if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-                  }).catch(function () {});
-                  var refreshed = false;
-                  navigator.serviceWorker.addEventListener('controllerchange', function () {
-                    if (refreshed) return;
-                    refreshed = true;
-                    window.location.reload();
-                  });
-                });
-              }
-            `,
-          }}
-        />
+        <Script id="gotham-sw" strategy="afterInteractive">
+          {`
+            if ('serviceWorker' in navigator) {
+              navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).then(function (reg) {
+                reg.update();
+                if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+              }).catch(function () {});
+              var refreshed = false;
+              navigator.serviceWorker.addEventListener('controllerchange', function () {
+                if (refreshed) return;
+                refreshed = true;
+                window.location.reload();
+              });
+            }
+          `}
+        </Script>
       </body>
     </html>
   )
