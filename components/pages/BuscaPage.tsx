@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import dynamic from 'next/dynamic'
 import { Search, X, Filter } from 'lucide-react'
 import type { BuscaParams, BuscaResult } from '@/types/empresa'
 import { Tabs } from '@/components/ui-pal/Tabs'
@@ -10,6 +11,19 @@ import { Input } from '@/components/ui-pal/Input'
 import { Button } from '@/components/ui-pal/Button'
 import { Panel } from '@/components/ui-pal/Card'
 import { cn } from '@/lib/cn'
+
+const BrazilTacticalMap = dynamic(
+  () => import('@/components/maps/BrazilTacticalMap').then(m => ({ default: m.BrazilTacticalMap })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="rounded-[2px] border border-border bg-background flex items-center justify-center text-muted text-[11px] font-mono uppercase tracking-[0.18em] gap-2 h-[360px]">
+        <span className="size-3 rounded-full border-2 border-info/40 border-t-info animate-gtm-spin" />
+        carregando malha...
+      </div>
+    ),
+  },
+)
 
 const UFS = [
   'AC','AL','AM','AP','BA','CE','DF','ES','GO','MA','MG','MS','MT','PA',
@@ -414,25 +428,33 @@ export function BuscaPage({ onResultados }: Props) {
                   hint={ufs.length > 0 ? `${ufs.length} selecionados` : 'todos os estados'}
                   className="lg:col-span-2"
                 >
-                  <div className="grid grid-cols-7 sm:grid-cols-9 gap-1">
-                    {UFS.map(u => {
-                      const active = ufs.includes(u)
-                      return (
-                        <button
-                          key={u}
-                          type="button"
-                          onClick={() => toggleUf(u)}
-                          className={cn(
-                            'h-8 rounded-[2px] border text-[11px] font-mono tabular tracking-wider transition-colors',
-                            active
-                              ? 'border-info bg-info/15 text-info font-bold'
-                              : 'border-border bg-surface-2 text-muted hover:text-primary hover:border-border-strong',
-                          )}
-                        >
-                          {u}
-                        </button>
-                      )
-                    })}
+                  <div className="space-y-2">
+                    <BrazilTacticalMap
+                      selected={ufs}
+                      onToggleUF={toggleUf}
+                      onClear={() => setUfs([])}
+                      height={360}
+                    />
+                    <div className="grid grid-cols-7 sm:grid-cols-9 gap-1">
+                      {UFS.map(u => {
+                        const active = ufs.includes(u)
+                        return (
+                          <button
+                            key={u}
+                            type="button"
+                            onClick={() => toggleUf(u)}
+                            className={cn(
+                              'h-8 rounded-[2px] border text-[11px] font-mono tabular tracking-wider transition-colors',
+                              active
+                                ? 'border-success bg-success/15 text-success font-bold'
+                                : 'border-border bg-surface-2 text-muted hover:text-primary hover:border-border-strong',
+                            )}
+                          >
+                            {u}
+                          </button>
+                        )
+                      })}
+                    </div>
                   </div>
                 </Field>
 
