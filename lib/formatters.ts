@@ -50,10 +50,10 @@ export function formatDate(dateStr: string | null | undefined): string {
 
 export function situacaoColor(sit: string): string {
   const s = sit?.toUpperCase()
-  if (s === 'ATIVA' || s === '2') return '#22c55e'
-  if (s === 'BAIXADA' || s === '8') return '#ef4444'
-  if (s === 'SUSPENSA' || s === '3') return '#f59e0b'
-  return '#a89868'
+  if (s === 'ATIVA' || s === '2') return '#3DDB7E'
+  if (s === 'BAIXADA' || s === '8') return '#FF5C6C'
+  if (s === 'SUSPENSA' || s === '3') return '#F5B947'
+  return '#A0AEC8'
 }
 
 export function exportCSV(rows: Record<string, unknown>[], filename: string) {

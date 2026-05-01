@@ -1,19 +1,19 @@
 @import 'tailwindcss';
 
 @theme {
-  --color-background: #0A0C10;
-  --color-surface: #161B22;
-  --color-surface-2: #1C232C;
-  --color-surface-3: #232B36;
-  --color-muted: #8B949E;
-  --color-primary: #C9D1D9;
-  --color-border: #30363D;
-  --color-border-strong: #4B5563;
-  --color-critical: #F85149;
-  --color-warning: #D29922;
-  --color-success: #3FB950;
-  --color-info: #58A6FF;
-  --color-violet: #A371F7;
+  --color-background: #080B12;
+  --color-surface: #1A2230;
+  --color-surface-2: #222C3D;
+  --color-surface-3: #2D3850;
+  --color-muted: #A0AEC8;
+  --color-primary: #E2E8F0;
+  --color-border: #3D4A66;
+  --color-border-strong: #566A8C;
+  --color-critical: #FF5C6C;
+  --color-warning: #F5B947;
+  --color-success: #3DDB7E;
+  --color-info: #4FA8FF;
+  --color-violet: #B788FF;
 
   --font-sans: 'Geist', ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
@@ -75,8 +75,8 @@ input:-webkit-autofill:focus {
 .bg-grid-tech {
   background-color: var(--color-background);
   background-image:
-    linear-gradient(to right, rgba(48, 54, 61, 0.5) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(48, 54, 61, 0.5) 1px, transparent 1px);
+    linear-gradient(to right, rgba(61, 74, 102, 0.45) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(61, 74, 102, 0.45) 1px, transparent 1px);
   background-size: 40px 40px;
 }
 
