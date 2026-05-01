@@ -26,6 +26,7 @@ import { AdminPage } from '@/components/pages/AdminPage'
 import { PerfilPage } from '@/components/pages/PerfilPage'
 import { InspectorEmpresa } from '@/components/pages/InspectorEmpresa'
 import type { AppPage } from '@/components/shell/Sidebar'
+import { SearchScanOverlay } from '@/components/maps/SearchScanOverlay'
 import { cn } from '@/lib/cn'
 
 type ModuleCard = {
@@ -49,17 +50,24 @@ export function MobileLayout({ onLogout }: { onLogout?: () => void }) {
 
   const { enrich, enrichedMap, enrichingCnpjs } = useEnrichment()
   const { podeAcessar, nivel } = usePermissoes()
+  const [scanData, setScanData] = useState<{ result: BuscaResult; params: BuscaParams } | null>(null)
 
   const handleResultados = useCallback(
     (r: BuscaResult, p: BuscaParams) => {
-      setResultado(r)
-      setParams(p)
       paramsRef.current = p
       enrich(r.empresas)
-      setPage('resultados')
+      setScanData({ result: r, params: p })
     },
     [enrich],
   )
+
+  const handleScanComplete = useCallback(() => {
+    if (!scanData) return
+    setResultado(scanData.result)
+    setParams(scanData.params)
+    setPage('resultados')
+    setScanData(null)
+  }, [scanData])
 
   const handlePaginar = useCallback(async (pagina: number) => {
     const p = paramsRef.current
@@ -282,6 +290,15 @@ export function MobileLayout({ onLogout }: { onLogout?: () => void }) {
             }
           />
         </BottomSheet>
+      )}
+
+      {scanData && (
+        <SearchScanOverlay
+          ufs={scanData.params.ufs ?? []}
+          cnaes={(scanData.params.cnae ?? '').split(',').map(c => c.trim()).filter(Boolean)}
+          durationMs={5000}
+          onComplete={handleScanComplete}
+        />
       )}
     </div>
   )

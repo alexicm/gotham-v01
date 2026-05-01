@@ -6,6 +6,7 @@ import { Sidebar, type AppPage } from '@/components/shell/Sidebar'
 import { InspectorRail } from '@/components/shell/InspectorRail'
 import { TerminalOverlay } from '@/components/shell/TerminalOverlay'
 import { TerminalPasswordGate } from '@/components/TerminalPasswordGate'
+import { SearchScanOverlay } from '@/components/maps/SearchScanOverlay'
 import { BuscaPage } from '@/components/pages/BuscaPage'
 import { ResultadosPage } from '@/components/pages/ResultadosPage'
 import { FichaPage } from '@/components/pages/FichaPage'
@@ -49,6 +50,10 @@ function DesktopShell({ onLogout }: { onLogout?: () => void }) {
   const [terminalOpen, setTerminalOpen] = useState(false)
   const [terminalGateOpen, setTerminalGateOpen] = useState(false)
   const [perfilNome, setPerfilNome] = useState<string>('')
+  const [scanData, setScanData] = useState<{
+    result: BuscaResult
+    params: BuscaParams
+  } | null>(null)
 
   const paramsRef = useRef<BuscaParams | null>(null)
 
@@ -92,15 +97,23 @@ function DesktopShell({ onLogout }: { onLogout?: () => void }) {
 
   const handleResultados = useCallback(
     (r: BuscaResult, p: BuscaParams) => {
-      setResultado(r)
-      setParams(p)
+      // Dispara scan overlay; a transição para "resultados" acontece ao
+      // término da animação (handleScanComplete).
       paramsRef.current = p
       setSelected(null)
       enrich(r.empresas)
-      setActivePage('resultados')
+      setScanData({ result: r, params: p })
     },
     [enrich],
   )
+
+  const handleScanComplete = useCallback(() => {
+    if (!scanData) return
+    setResultado(scanData.result)
+    setParams(scanData.params)
+    setActivePage('resultados')
+    setScanData(null)
+  }, [scanData])
 
   const handlePaginar = useCallback(
     async (pagina: number) => {
@@ -306,6 +319,15 @@ function DesktopShell({ onLogout }: { onLogout?: () => void }) {
             setTerminalOpen(true)
           }}
           onCancel={() => setTerminalGateOpen(false)}
+        />
+      )}
+
+      {scanData && (
+        <SearchScanOverlay
+          ufs={scanData.params.ufs ?? []}
+          cnaes={(scanData.params.cnae ?? '').split(',').map(c => c.trim()).filter(Boolean)}
+          durationMs={5000}
+          onComplete={handleScanComplete}
         />
       )}
     </div>
