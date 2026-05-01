@@ -17,7 +17,7 @@ export default function Home() {
   const [timerDone, setTimerDone] = useState(false)
 
   useEffect(() => {
-    const timer = setTimeout(() => setTimerDone(true), 1500)
+    const timer = setTimeout(() => setTimerDone(true), 3000)
     return () => clearTimeout(timer)
   }, [])
 
