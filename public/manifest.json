@@ -1,11 +1,11 @@
 {
-  "name": "Gotham Search",
+  "name": "Gotham — Tactical Intelligence System",
   "short_name": "Gotham",
-  "description": "Busca e enriquecimento de empresas brasileiras por CNAE",
+  "description": "Sistema de inteligência empresarial — busca por CNAE, enriquecimento e análise por IA.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#d4c4a8",
-  "theme_color": "#fbbf24",
+  "background_color": "#080B12",
+  "theme_color": "#080B12",
   "orientation": "portrait-primary",
   "icons": [
     {

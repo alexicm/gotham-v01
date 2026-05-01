@@ -50,7 +50,22 @@ export default function RootLayout({
         <Analytics />
         <script
           dangerouslySetInnerHTML={{
-            __html: `if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('/sw.js') }) }`,
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function () {
+                  navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).then(function (reg) {
+                    reg.update();
+                    if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+                  }).catch(function () {});
+                  var refreshed = false;
+                  navigator.serviceWorker.addEventListener('controllerchange', function () {
+                    if (refreshed) return;
+                    refreshed = true;
+                    window.location.reload();
+                  });
+                });
+              }
+            `,
           }}
         />
       </body>
