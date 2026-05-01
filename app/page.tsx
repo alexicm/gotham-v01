@@ -1,4 +1,3 @@
-// app/page.tsx
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
@@ -8,22 +7,20 @@ import { LoadingScreen } from '@/components/LoadingScreen'
 import { createClient } from '@/lib/supabase/client'
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js'
 
-const CnaeDesktop = dynamic(
-  () => import('@/components/CnaeDesktop').then(m => ({ default: m.CnaeDesktop })),
-  { ssr: false }
+const AppShell = dynamic(
+  () => import('@/components/AppShell').then(m => ({ default: m.AppShell })),
+  { ssr: false },
 )
 
 export default function Home() {
   const [autenticado, setAutenticado] = useState<boolean | null>(null)
   const [timerDone, setTimerDone] = useState(false)
 
-  // Timer mínimo de 3 segundos
   useEffect(() => {
-    const timer = setTimeout(() => setTimerDone(true), 3000)
+    const timer = setTimeout(() => setTimerDone(true), 1500)
     return () => clearTimeout(timer)
   }, [])
 
-  // Verificação de sessão
   useEffect(() => {
     const supabase = createClient()
 
@@ -31,7 +28,9 @@ export default function Home() {
       setAutenticado(!!user)
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
       setAutenticado(!!session?.user)
     })
 
@@ -45,12 +44,9 @@ export default function Home() {
     setAutenticado(false)
   }, [])
 
-  // Mostrar loading enquanto timer não acabou OU sessão não foi verificada
   if (!timerDone || autenticado === null) {
     return <LoadingScreen />
   }
 
-  return autenticado
-    ? <CnaeDesktop onLogout={handleLogout} />
-    : <LoginScreen onLogin={handleLogin} />
+  return autenticado ? <AppShell onLogout={handleLogout} /> : <LoginScreen onLogin={handleLogin} />
 }

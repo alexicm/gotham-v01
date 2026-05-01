@@ -3,24 +3,25 @@ import type { Metadata, Viewport } from 'next'
 import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
-import { Geist_Mono } from 'next/font/google'
+import { Geist, Geist_Mono } from 'next/font/google'
 
+const geistSans = Geist({ subsets: ['latin'], variable: '--font-sans' })
 const geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-mono' })
 
 export const metadata: Metadata = {
-  title: 'Gotham Search — Inteligencia Empresarial Brasileira',
-  description: 'Busca e enriquecimento de empresas brasileiras por CNAE com interface OS interativa.',
-  generator: 'v0.app',
+  title: 'Gotham — Sistema de Inteligência Empresarial',
+  description: 'Busca e enriquecimento de empresas brasileiras por CNAE — dashboard de inteligência operacional.',
+  generator: 'gotham',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
-    statusBarStyle: 'default',
-    title: 'Gotham Search',
+    statusBarStyle: 'black-translucent',
+    title: 'Gotham',
   },
   formatDetection: { telephone: false },
   openGraph: {
-    title: 'Gotham Search',
-    description: 'Busca empresas brasileiras por CNAE com dados completos da Receita Federal.',
+    title: 'Gotham',
+    description: 'Sistema de inteligência empresarial.',
     type: 'website',
   },
 }
@@ -30,7 +31,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: '#fbbf24',
+  themeColor: '#0A0C10',
 }
 
 export default function RootLayout({
@@ -39,15 +40,12 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="pt-BR" style={{ background: '#d4c4a8' }}>
+    <html lang="pt-BR" className="dark">
       <head>
         <link rel="apple-touch-icon" href="/icons/icon-512.jpg" />
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
-      <body
-        className={`${geistMono.variable} font-mono antialiased`}
-        style={{ background: '#d4c4a8', overflow: 'hidden', overscrollBehavior: 'none' }}
-      >
+      <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}>
         {children}
         <Analytics />
         <script

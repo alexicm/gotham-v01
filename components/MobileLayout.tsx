@@ -1,248 +1,85 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
-import { Search, FileText, Building2, Terminal, ChevronLeft, LogOut } from 'lucide-react'
-import { BuscaWindow } from './windows/BuscaWindow'
-import { ResultadosWindow } from './windows/ResultadosWindow'
-import { FichaWindow } from './windows/FichaWindow'
-import { CnaeTerminalWindow } from './windows/CnaeTerminalWindow'
+import { useCallback, useRef, useState } from 'react'
+import {
+  Search,
+  FileText,
+  Building2,
+  Brain,
+  User,
+  ShieldCheck,
+  ChevronLeft,
+  ChevronRight,
+  LogOut,
+  Activity,
+  X,
+} from 'lucide-react'
 import type { Empresa, BuscaResult, BuscaParams } from '@/types/empresa'
 import { useEnrichment } from '@/hooks/useEnrichment'
+import { usePermissoes } from '@/hooks/usePermissoes'
+import { BuscaPage } from '@/components/pages/BuscaPage'
+import { ResultadosPage } from '@/components/pages/ResultadosPage'
+import { FichaPage } from '@/components/pages/FichaPage'
+import { CnpjPage } from '@/components/pages/CnpjPage'
+import { IntelligencePage } from '@/components/pages/IntelligencePage'
+import { AdminPage } from '@/components/pages/AdminPage'
+import { PerfilPage } from '@/components/pages/PerfilPage'
+import { InspectorEmpresa } from '@/components/pages/InspectorEmpresa'
+import type { AppPage } from '@/components/shell/Sidebar'
+import { cn } from '@/lib/cn'
 
-type Tab = 'busca' | 'resultados' | 'ficha' | 'terminal'
-
-interface FichaTarget {
-  cnpj: string
-  base?: Empresa
+type ModuleCard = {
+  id: AppPage
+  label: string
+  icon: React.ReactNode
+  desc: string
+  variant: 'info' | 'warning' | 'success' | 'violet'
+  enabled: boolean
 }
-
-// ─── Header ───────────────────────────────────────────────────────────────────
-
-function MobileHeader({
-  title,
-  subtitle,
-  onBack,
-  onLogout,
-}: {
-  title: string
-  subtitle?: string
-  onBack?: () => void
-  onLogout?: () => void
-}) {
-  return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 10,
-        padding: '0 12px',
-        height: 52,
-        background: '#f5f1e8',
-        borderBottom: '1.5px solid #c8b888',
-        flexShrink: 0,
-        position: 'sticky',
-        top: 0,
-        zIndex: 10,
-      }}
-    >
-      {onBack && (
-        <button
-          onClick={onBack}
-          aria-label="Voltar"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: 32,
-            height: 32,
-            background: '#ede8da',
-            border: '1px solid #c8b888',
-            borderRadius: 8,
-            cursor: 'pointer',
-            flexShrink: 0,
-          }}
-        >
-          <ChevronLeft size={18} color="#2c2416" />
-        </button>
-      )}
-      {/* Gotham Search brand */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
-        <div
-          style={{
-            width: 22,
-            height: 22,
-            background: '#fbbf24',
-            borderRadius: 6,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Search size={11} color="#1a1208" />
-        </div>
-        <span style={{ fontSize: 12, fontWeight: 800, color: '#2c2416' }}>Gotham Search</span>
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div
-          style={{
-            fontSize: 12,
-            fontWeight: 700,
-            color: '#2c2416',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {title}
-        </div>
-        {subtitle && (
-          <div style={{ fontSize: 10, color: '#7a6a4a', marginTop: 1 }}>{subtitle}</div>
-        )}
-      </div>
-      <button
-        onClick={onLogout}
-        aria-label="Sair do sistema"
-        title="Sair"
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          width: 34,
-          height: 34,
-          background: '#fee2e2',
-          border: '1px solid #f87171',
-          borderRadius: 8,
-          cursor: 'pointer',
-          flexShrink: 0,
-        }}
-      >
-        <LogOut size={16} color="#dc2626" />
-      </button>
-    </div>
-  )
-}
-
-// ─── Bottom Nav ───────────────────────────────────────────────────────────────
-
-const NAV_ITEMS: { tab: Tab; label: string; Icon: React.FC<{ size: number; color: string }> }[] = [
-  { tab: 'busca', label: 'Busca', Icon: Search },
-  { tab: 'resultados', label: 'Resultados', Icon: FileText },
-  { tab: 'ficha', label: 'Ficha', Icon: Building2 },
-  { tab: 'terminal', label: 'Terminal', Icon: Terminal },
-]
-
-function BottomNav({
-  active,
-  onChange,
-  hasResultados,
-  hasFicha,
-}: {
-  active: Tab
-  onChange: (t: Tab) => void
-  hasResultados: boolean
-  hasFicha: boolean
-}) {
-  return (
-    <nav
-      aria-label="Navegacao principal"
-      style={{
-        display: 'flex',
-        background: '#f5f1e8',
-        borderTop: '1.5px solid #c8b888',
-        flexShrink: 0,
-        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-      }}
-    >
-      {NAV_ITEMS.map(({ tab, label, Icon }) => {
-        const isActive = active === tab
-        const isDisabled = (tab === 'resultados' && !hasResultados) || (tab === 'ficha' && !hasFicha)
-        return (
-          <button
-            key={tab}
-            onClick={() => !isDisabled && onChange(tab)}
-            disabled={isDisabled}
-            aria-label={label}
-            aria-current={isActive ? 'page' : undefined}
-            style={{
-              flex: 1,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 3,
-              padding: '10px 4px',
-              background: 'transparent',
-              border: 'none',
-              cursor: isDisabled ? 'not-allowed' : 'pointer',
-              opacity: isDisabled ? 0.35 : 1,
-              borderTop: isActive ? '2px solid #fbbf24' : '2px solid transparent',
-              transition: 'border-color 0.15s',
-            }}
-          >
-            <Icon size={20} color={isActive ? '#d97706' : '#7a6a4a'} />
-            <span
-              style={{
-                fontSize: 10,
-                fontWeight: isActive ? 700 : 500,
-                color: isActive ? '#d97706' : '#7a6a4a',
-                fontFamily: 'inherit',
-              }}
-            >
-              {label}
-            </span>
-          </button>
-        )
-      })}
-    </nav>
-  )
-}
-
-// ─── Mobile Layout ─────────────────────────────────────────────────────────────
 
 export function MobileLayout({ onLogout }: { onLogout?: () => void }) {
-  const [tab, setTab] = useState<Tab>('busca')
+  const [page, setPage] = useState<AppPage | 'home'>('home')
   const [resultado, setResultado] = useState<BuscaResult | null>(null)
   const [params, setParams] = useState<BuscaParams | null>(null)
-  const [fichaTarget, setFichaTarget] = useState<FichaTarget | null>(null)
+  const [fichaTarget, setFichaTarget] = useState<{ cnpj: string; base?: Empresa } | null>(null)
+  const [selectedSheet, setSelectedSheet] = useState<Empresa | null>(null)
+  const [intelligenceEmpresa, setIntelligenceEmpresa] = useState<Empresa | null>(null)
   const [loadingPagina, setLoadingPagina] = useState(false)
-  const { enrich, enrichedMap, enrichingCnpjs } = useEnrichment()
-
   const paramsRef = useRef<BuscaParams | null>(null)
-  const resultadoRef = useRef<BuscaResult | null>(null)
 
-  const handleResultados = useCallback((result: BuscaResult, p: BuscaParams) => {
-    setResultado(result)
-    setParams(p)
-    paramsRef.current = p
-    resultadoRef.current = result
-    enrich(result.empresas)
-    setTab('resultados')
-  }, [enrich])
+  const { enrich, enrichedMap, enrichingCnpjs } = useEnrichment()
+  const { podeAcessar, nivel } = usePermissoes()
 
-  const handleAbrirFicha = useCallback((empresa: Empresa) => {
-    setFichaTarget({ cnpj: empresa.cnpj, base: empresa })
-    setTab('ficha')
-  }, [])
+  const handleResultados = useCallback(
+    (r: BuscaResult, p: BuscaParams) => {
+      setResultado(r)
+      setParams(p)
+      paramsRef.current = p
+      enrich(r.empresas)
+      setPage('resultados')
+    },
+    [enrich],
+  )
 
   const handlePaginar = useCallback(async (pagina: number) => {
     const p = paramsRef.current
     if (!p) return
     setLoadingPagina(true)
-
-    const cnaes = (p.cnae ?? '').split(/[,\s]+/).map(c => parseInt(c.replace(/\D/g, ''), 10)).filter(Boolean)
+    const cnaes = (p.cnae ?? '')
+      .split(/[,\s]+/)
+      .map(c => parseInt(c.replace(/\D/g, ''), 10))
+      .filter(n => !isNaN(n) && n > 0)
     const porPagina = p.porPagina ?? 50
-    // atualiza params com a nova pagina para manter estado correto
     const newParams: BuscaParams = { ...p, pagina }
     paramsRef.current = newParams
     setParams(newParams)
-
     const payload: Record<string, unknown> = {
       cnaes,
       inicio: (pagina - 1) * porPagina,
       quantidade: porPagina,
     }
-    if (p.uf) payload.estados = [p.uf.toUpperCase()]
-
+    if (p.ufs && p.ufs.length > 0) payload.estados = p.ufs
+    else if (p.uf) payload.estados = [p.uf.toUpperCase()]
     try {
       const res = await fetch('/api/busca-cnae', {
         method: 'POST',
@@ -251,183 +88,301 @@ export function MobileLayout({ onLogout }: { onLogout?: () => void }) {
       })
       const data: BuscaResult = await res.json()
       setResultado(data)
-      resultadoRef.current = data
     } finally {
       setLoadingPagina(false)
     }
   }, [])
 
-  const handleTerminalResultados = useCallback((result: BuscaResult) => {
-    setResultado(result)
-    resultadoRef.current = result
-    setTab('resultados')
+  const handleAbrirFicha = useCallback((e: Empresa) => {
+    setFichaTarget({ cnpj: e.cnpj, base: e })
+    setSelectedSheet(null)
+    setPage('ficha')
   }, [])
 
-  const handleTerminalFicha = useCallback((cnpj: string) => {
-    setFichaTarget({ cnpj })
-    setTab('ficha')
+  const handleAnalisarIA = useCallback((e: Empresa) => {
+    setIntelligenceEmpresa(e)
+    setSelectedSheet(null)
+    setPage('intelligence')
   }, [])
 
-  const headerMap: Record<Tab, { title: string; subtitle?: string }> = {
-    busca: { title: 'nova_busca.cnae', subtitle: 'Busque por CNAE, UF, municipio' },
-    resultados: {
-      title: 'resultados.cnae',
-      subtitle: resultado ? `${resultado.total.toLocaleString('pt-BR')} empresas` : 'Sem resultados',
+  const cards: ModuleCard[] = [
+    {
+      id: 'busca',
+      label: 'Busca',
+      icon: <Search size={18} />,
+      desc: 'Empresas por CNAE, UF, termos e mais',
+      variant: 'info',
+      enabled: podeAcessar('busca'),
     },
-    ficha: {
-      title: fichaTarget ? `ficha_${fichaTarget.cnpj.replace(/\D/g, '')}.cnpj` : 'ficha.cnpj',
-      subtitle: 'Dados completos BrasilAPI',
+    {
+      id: 'resultados',
+      label: 'Resultados',
+      icon: <FileText size={18} />,
+      desc: resultado
+        ? `${resultado.total.toLocaleString('pt-BR')} empresas`
+        : 'Nenhuma busca executada',
+      variant: 'success',
+      enabled: podeAcessar('busca') && !!resultado,
     },
-    terminal: { title: 'terminal.cnae', subtitle: 'Shell Gotham Search' },
+    {
+      id: 'cnpj',
+      label: 'CNPJ Lookup',
+      icon: <Building2 size={18} />,
+      desc: 'Consulta direta via BrasilAPI',
+      variant: 'info',
+      enabled: podeAcessar('cnpj'),
+    },
+    {
+      id: 'intelligence',
+      label: 'Intelligence',
+      icon: <Brain size={18} />,
+      desc: 'Análise por IA + dados em tempo real',
+      variant: 'violet',
+      enabled: podeAcessar('intelligence'),
+    },
+    {
+      id: 'perfil',
+      label: 'Perfil',
+      icon: <User size={18} />,
+      desc: 'Seus dados, permissões e histórico',
+      variant: 'warning',
+      enabled: podeAcessar('busca'),
+    },
+    ...(nivel === 'admin'
+      ? [
+          {
+            id: 'admin' as const,
+            label: 'Admin',
+            icon: <ShieldCheck size={18} />,
+            desc: 'Gestão de usuários',
+            variant: 'warning' as const,
+            enabled: true,
+          },
+        ]
+      : []),
+  ]
+
+  const titles: Record<AppPage, string> = {
+    busca: 'NOVA BUSCA',
+    resultados: 'RESULTADOS',
+    ficha: 'FICHA EMPRESA',
+    cnpj: 'CNPJ LOOKUP',
+    intelligence: 'INTELLIGENCE',
+    admin: 'ADMIN',
+    perfil: 'PERFIL',
   }
 
-  const h = headerMap[tab]
-
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100dvh',
-        background: '#f5f1e8',
-        fontFamily: 'var(--font-mono), monospace',
-        overscrollBehavior: 'none',
-      }}
-    >
-      <MobileHeader
-        title={h.title}
-        subtitle={h.subtitle}
-        onBack={tab === 'ficha' ? () => setTab('resultados') : undefined}
-        onLogout={onLogout}
-      />
-
-      {/* Views */}
-      <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
-        {/* Busca */}
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            display: tab === 'busca' ? 'flex' : 'none',
-            flexDirection: 'column',
-            overflowY: 'auto',
-          }}
-        >
-          <BuscaWindow onResultados={handleResultados} />
+    <div className="fixed inset-0 flex flex-col bg-background overflow-hidden font-sans">
+      {/* TopBar mobile */}
+      <header className="h-[44px] border-b border-border bg-surface flex items-center px-3 gap-3 flex-shrink-0">
+        {page !== 'home' && (
+          <button
+            type="button"
+            onClick={() => {
+              if (page === 'ficha') setPage('resultados')
+              else setPage('home')
+            }}
+            className="size-8 rounded-[2px] border border-border bg-surface-2 flex items-center justify-center text-muted hover:text-primary"
+            aria-label="Voltar"
+          >
+            <ChevronLeft size={16} />
+          </button>
+        )}
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <div className="size-5 rounded-[2px] bg-info/20 border border-info/40 flex items-center justify-center flex-shrink-0">
+            <span className="text-[10px] font-bold text-info">G</span>
+          </div>
+          <span className="text-[12px] font-bold text-primary tracking-[0.04em] truncate">
+            {page === 'home' ? 'GOTHAM' : titles[page]}
+          </span>
         </div>
+        <div className="hidden sm:flex items-center gap-1.5 text-[10px] uppercase tracking-[0.1em] text-success/80 font-mono">
+          <Activity size={10} />
+          OPERATIONAL
+        </div>
+        {onLogout && (
+          <button
+            type="button"
+            onClick={onLogout}
+            className="h-7 px-2 rounded-[2px] border border-critical/40 bg-critical/10 text-critical text-[11px] font-semibold flex items-center gap-1"
+            aria-label="Sair"
+          >
+            <LogOut size={11} />
+          </button>
+        )}
+      </header>
 
-        {/* Resultados */}
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            display: tab === 'resultados' ? 'flex' : 'none',
-            flexDirection: 'column',
-          }}
-        >
-          {resultado ? (
-            <ResultadosWindow
+      <div className="flex-1 min-h-0 overflow-hidden">
+        {page === 'home' && (
+          <HomeStack
+            cards={cards}
+            onSelect={p => {
+              if (p === 'resultados' && !resultado) return
+              setPage(p)
+            }}
+            onLogout={onLogout}
+          />
+        )}
+
+        {page === 'busca' && <BuscaPage onResultados={handleResultados} />}
+
+        {page === 'resultados' &&
+          (resultado ? (
+            <ResultadosPage
               resultado={resultado}
-              onAbrirFicha={handleAbrirFicha}
-              onPaginar={handlePaginar}
-              loadingPagina={loadingPagina}
+              buscaParams={params ?? undefined}
               enrichedMap={enrichedMap}
               enrichingCnpjs={enrichingCnpjs}
-              buscaParams={params ?? undefined}
+              loadingPagina={loadingPagina}
+              selectedCnpj={selectedSheet?.cnpj ?? null}
+              onSelect={e => setSelectedSheet(e)}
+              onAbrirFicha={handleAbrirFicha}
+              onPaginar={handlePaginar}
             />
           ) : (
-            <div
-              style={{
-                flex: 1,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 12,
-                color: '#7a6a4a',
-                padding: 32,
-                textAlign: 'center',
-              }}
-            >
-              <FileText size={40} color="#c8b888" />
-              <span style={{ fontSize: 14, fontWeight: 600 }}>Nenhuma busca realizada</span>
-              <span style={{ fontSize: 12 }}>Faca uma busca na aba Busca primeiro.</span>
-              <button
-                onClick={() => setTab('busca')}
-                style={{
-                  marginTop: 8,
-                  padding: '10px 20px',
-                  background: '#fbbf24',
-                  border: 'none',
-                  borderRadius: 8,
-                  fontSize: 13,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  color: '#1a1208',
-                  fontFamily: 'inherit',
-                }}
-              >
-                Ir para Busca
-              </button>
-            </div>
-          )}
-        </div>
+            <EmptyMobile title="Nenhuma busca executada" />
+          ))}
 
-        {/* Ficha */}
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            display: tab === 'ficha' ? 'flex' : 'none',
-            flexDirection: 'column',
-          }}
-        >
-          {fichaTarget ? (
-            <FichaWindow cnpj={fichaTarget.cnpj} empresaBase={fichaTarget.base} />
+        {page === 'ficha' &&
+          (fichaTarget ? (
+            <FichaPage
+              cnpj={fichaTarget.cnpj}
+              empresaBase={fichaTarget.base}
+              onBack={() => setPage('resultados')}
+              onAnalisarIA={handleAnalisarIA}
+            />
           ) : (
-            <div
-              style={{
-                flex: 1,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 12,
-                color: '#7a6a4a',
-                padding: 32,
-                textAlign: 'center',
-              }}
-            >
-              <Building2 size={40} color="#c8b888" />
-              <span style={{ fontSize: 14, fontWeight: 600 }}>Nenhuma empresa selecionada</span>
-              <span style={{ fontSize: 12 }}>Selecione uma empresa nos resultados.</span>
-            </div>
-          )}
-        </div>
+            <EmptyMobile title="Nenhuma ficha selecionada" />
+          ))}
 
-        {/* Terminal */}
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            display: tab === 'terminal' ? 'flex' : 'none',
-            flexDirection: 'column',
-          }}
-        >
-          <CnaeTerminalWindow
-            onAbrirBusca={() => setTab('busca')}
-            onResultados={handleTerminalResultados}
-            onAbrirFicha={handleTerminalFicha}
-          />
-        </div>
+        {page === 'cnpj' && <CnpjPage />}
+
+        {page === 'intelligence' && (
+          <IntelligencePage empresaInicial={intelligenceEmpresa ?? undefined} />
+        )}
+
+        {page === 'admin' && nivel === 'admin' && <AdminPage />}
+
+        {page === 'perfil' && <PerfilPage />}
       </div>
 
-      <BottomNav
-        active={tab}
-        onChange={setTab}
-        hasResultados={resultado !== null}
-        hasFicha={fichaTarget !== null}
-      />
+      {/* Bottom sheet — preview da empresa selecionada nos resultados */}
+      {selectedSheet && page === 'resultados' && (
+        <BottomSheet
+          onClose={() => setSelectedSheet(null)}
+        >
+          <InspectorEmpresa
+            empresa={enrichedMap?.get(selectedSheet.cnpj) ?? selectedSheet}
+            onAbrirFicha={() =>
+              handleAbrirFicha(enrichedMap?.get(selectedSheet.cnpj) ?? selectedSheet)
+            }
+            onAnalisarIA={() =>
+              handleAnalisarIA(enrichedMap?.get(selectedSheet.cnpj) ?? selectedSheet)
+            }
+          />
+        </BottomSheet>
+      )}
+    </div>
+  )
+}
+
+function HomeStack({
+  cards,
+  onSelect,
+}: {
+  cards: ModuleCard[]
+  onSelect: (p: AppPage) => void
+  onLogout?: () => void
+}) {
+  return (
+    <div className="h-full overflow-y-auto p-3 space-y-2 animate-gtm-fade-in">
+      <div className="text-[10px] uppercase tracking-[0.12em] text-muted font-mono px-1 pt-1 pb-2">
+        MÓDULOS DISPONÍVEIS
+      </div>
+      {cards.map(card => {
+        const variantBorder: Record<ModuleCard['variant'], string> = {
+          info: 'border-info/30',
+          warning: 'border-warning/30',
+          success: 'border-success/30',
+          violet: 'border-violet/30',
+        }
+        const variantText: Record<ModuleCard['variant'], string> = {
+          info: 'text-info',
+          warning: 'text-warning',
+          success: 'text-success',
+          violet: 'text-violet',
+        }
+        return (
+          <button
+            key={card.id}
+            type="button"
+            disabled={!card.enabled}
+            onClick={() => onSelect(card.id)}
+            className={cn(
+              'w-full rounded-[4px] border bg-surface flex items-center gap-3 p-3 text-left transition-colors',
+              card.enabled
+                ? `${variantBorder[card.variant]} hover:bg-surface-2`
+                : 'border-border/50 opacity-50 cursor-not-allowed',
+            )}
+          >
+            <div
+              className={cn(
+                'size-9 rounded-[2px] border flex items-center justify-center flex-shrink-0',
+                variantBorder[card.variant],
+                'bg-background',
+                variantText[card.variant],
+              )}
+            >
+              {card.icon}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-[13px] font-semibold text-primary leading-tight">
+                {card.label}
+              </div>
+              <div className="text-[11px] text-muted truncate">{card.desc}</div>
+            </div>
+            <ChevronRight size={14} className="text-muted flex-shrink-0" />
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+function EmptyMobile({ title }: { title: string }) {
+  return (
+    <div className="h-full flex items-center justify-center text-muted text-[12px] p-6 text-center">
+      {title}
+    </div>
+  )
+}
+
+function BottomSheet({
+  children,
+  onClose,
+}: {
+  children: React.ReactNode
+  onClose: () => void
+}) {
+  return (
+    <div className="fixed inset-0 z-50 bg-background/70 flex items-end" onClick={onClose}>
+      <div
+        className="w-full max-h-[85vh] bg-surface border-t border-border rounded-t-[4px] overflow-y-auto animate-gtm-fade-in"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex justify-end px-2 py-1 sticky top-0 bg-surface border-b border-border">
+          <button
+            type="button"
+            onClick={onClose}
+            className="size-7 rounded-[2px] text-muted hover:text-primary"
+            aria-label="Fechar"
+          >
+            <X size={14} />
+          </button>
+        </div>
+        {children}
+      </div>
     </div>
   )
 }

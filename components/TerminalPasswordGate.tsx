@@ -1,8 +1,10 @@
-// components/TerminalPasswordGate.tsx
 'use client'
 
 import { useState } from 'react'
-import { Terminal } from 'lucide-react'
+import { Terminal, Lock } from 'lucide-react'
+import { Button } from '@/components/ui-pal/Button'
+import { Input } from '@/components/ui-pal/Input'
+import { Spinner } from '@/components/ui-pal/Spinner'
 
 interface Props {
   onConfirm: () => void
@@ -39,90 +41,68 @@ export function TerminalPasswordGate({ onConfirm, onCancel }: Props) {
   }
 
   return (
-    <div style={{
-      position: 'fixed', inset: 0,
-      background: 'rgba(0,0,0,0.55)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      zIndex: 99999,
-    }}>
-      <div style={{
-        background: '#f5f1e8',
-        border: '1.5px solid #c8b888',
-        borderRadius: 12,
-        padding: 28,
-        width: 380,
-        fontFamily: "'Geist Mono', monospace",
-        boxShadow: '0 8px 40px rgba(0,0,0,0.28)',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-          <div style={{ width: 30, height: 30, background: '#fbbf24', borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <Terminal size={16} color="#1a1208" />
-          </div>
-          <h2 style={{ margin: 0, fontSize: 14, fontWeight: 800, color: '#2c2416' }}>Acesso ao Terminal</h2>
+    <div
+      className="fixed inset-0 z-[200] bg-background/75 backdrop-blur-sm flex items-center justify-center p-4 animate-gtm-fade-in"
+      onClick={onCancel}
+    >
+      <div
+        className="w-full max-w-[400px] rounded-[4px] border border-border bg-surface shadow-[0_24px_60px_rgba(0,0,0,0.6)]"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="h-9 border-b border-border bg-surface-2 flex items-center px-3">
+          <Lock size={11} className="text-warning mr-2" />
+          <span className="text-[10px] font-mono uppercase tracking-[0.12em] text-muted">
+            ACESSO RESTRITO · TERMINAL
+          </span>
         </div>
 
-        <p style={{ margin: '0 0 14px', fontSize: 11, color: '#7a6a4a' }}>
-          Digite seu código de acesso para continuar.
-        </p>
+        <div className="p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="size-9 rounded-[4px] bg-success/15 border border-success/40 flex items-center justify-center">
+              <Terminal size={16} className="text-success" />
+            </div>
+            <div>
+              <h2 className="text-[14px] font-semibold text-primary">Acesso ao Terminal</h2>
+              <p className="text-[11px] text-muted mt-0.5">
+                Digite seu código de acesso para continuar.
+              </p>
+            </div>
+          </div>
 
-        <input
-          type="password"
-          value={senha}
-          onChange={e => setSenha(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && verificar()}
-          autoFocus
-          placeholder="••••••"
-          style={{
-            display: 'block', width: '100%',
-            padding: '10px 12px',
-            background: '#ede8da',
-            border: `1px solid ${erro ? '#f87171' : '#c8b888'}`,
-            borderRadius: 6, fontSize: 13,
-            fontFamily: 'inherit',
-            boxSizing: 'border-box',
-            color: '#2c2416',
-            outline: 'none',
-          }}
-        />
-
-        {erro && (
-          <p style={{
-            margin: '8px 0 0', fontSize: 11,
-            color: '#dc2626',
-            background: '#fee2e2',
-            padding: '6px 10px',
-            borderRadius: 5,
-          }}>
-            {erro}
-          </p>
-        )}
-
-        <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-          <button
-            onClick={onCancel}
-            style={{
-              flex: 1, padding: '9px 0',
-              background: '#ede8da', border: '1px solid #c8b888',
-              borderRadius: 8, fontSize: 12, fontWeight: 600,
-              cursor: 'pointer', fontFamily: 'inherit', color: '#7a6a4a',
+          <Input
+            type="password"
+            value={senha}
+            onChange={e => {
+              setSenha(e.target.value)
+              if (erro) setErro('')
             }}
-          >
-            Cancelar
-          </button>
-          <button
-            onClick={verificar}
-            disabled={verificando || !senha}
-            style={{
-              flex: 1, padding: '9px 0',
-              background: verificando || !senha ? '#e0d8c4' : '#fbbf24',
-              border: '1.5px solid #d97706',
-              borderRadius: 8, fontSize: 12, fontWeight: 700,
-              cursor: verificando || !senha ? 'not-allowed' : 'pointer',
-              fontFamily: 'inherit', color: '#1a1208',
-            }}
-          >
-            {verificando ? 'Verificando...' : 'Confirmar'}
-          </button>
+            onKeyDown={e => e.key === 'Enter' && verificar()}
+            placeholder="••••••"
+            invalid={!!erro}
+            mono
+            autoFocus
+          />
+
+          {erro && (
+            <div className="mt-2 rounded-[2px] border border-critical/40 bg-critical/10 px-3 py-1.5 text-[11px] text-critical font-mono">
+              ! {erro}
+            </div>
+          )}
+
+          <div className="mt-5 flex gap-2">
+            <Button variant="secondary" onClick={onCancel} className="flex-1">
+              Cancelar
+            </Button>
+            <Button
+              variant="primary"
+              onClick={verificar}
+              disabled={verificando || !senha}
+              className="flex-1"
+            >
+              {verificando ? <Spinner size={11} /> : null}
+              {verificando ? 'Verificando...' : 'Confirmar'}
+            </Button>
+          </div>
         </div>
       </div>
     </div>

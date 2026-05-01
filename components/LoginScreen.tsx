@@ -1,12 +1,9 @@
-// components/LoginScreen.tsx
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import dynamic from 'next/dynamic'
-import { BarChart2, Eye, EyeOff, LogIn } from 'lucide-react'
+import { BarChart2, Eye, EyeOff, LogIn, Activity, Lock } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-
-const FaultyTerminal = dynamic(() => import('./FaultyTerminal'), { ssr: false })
+import { cn } from '@/lib/cn'
 
 function formatCPF(value: string) {
   const digits = value.replace(/\D/g, '').slice(0, 11)
@@ -30,14 +27,21 @@ export function LoginScreen({ onLogin }: Props) {
   const cpfRef = useRef<HTMLInputElement>(null)
   const codigoRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => { cpfRef.current?.focus() }, [])
+  useEffect(() => {
+    cpfRef.current?.focus()
+  }, [])
+
+  function triggerShake() {
+    setShake(true)
+    setTimeout(() => setShake(false), 450)
+  }
 
   function handleCpfChange(e: React.ChangeEvent<HTMLInputElement>) {
     const formatted = formatCPF(e.target.value)
     setCpf(formatted)
     if (erro) setErro('')
     if (formatted.replace(/\D/g, '').length === 11) {
-      setTimeout(() => codigoRef.current?.focus(), 50)
+      setTimeout(() => codigoRef.current?.focus(), 30)
     }
   }
 
@@ -73,7 +77,7 @@ export function LoginScreen({ onLogin }: Props) {
     setLoading(false)
 
     if (error) {
-      setErro('CPF ou código incorretos. Tente novamente.')
+      setErro('CPF ou código incorretos.')
       triggerShake()
       return
     }
@@ -81,115 +85,152 @@ export function LoginScreen({ onLogin }: Props) {
     onLogin()
   }
 
-  function triggerShake() {
-    setShake(true)
-    setTimeout(() => setShake(false), 500)
-  }
-
-  if (loading) {
-    return (
-      <div style={styles.overlay}>
-        <div style={styles.bgTerminal}><FaultyTerminal scale={1.5} gridMul={[2,1]} digitSize={1.2} timeScale={0.4} scanlineIntensity={0.6} glitchAmount={0.6} flickerAmount={0.7} noiseAmp={1} curvature={0.08} tint="#d97706" mouseReact={false} pageLoadAnimation brightness={0.45} /></div>
-        <svg width="200" height="200" viewBox="0 0 40 60">
-          <polygon
-            className="gtm-triangle"
-            fill="none"
-            strokeWidth="1"
-            points="16,1 32,32 1,32"
-          />
-          <text className="gtm-loading-text" x="0" y="45">
-            Autenticando...
-          </text>
-        </svg>
-        <span style={{ fontSize: 10, color: '#a89868', marginTop: -32, letterSpacing: '0.1em' }}>
-          GOTHAM v0.1
-        </span>
-      </div>
-    )
-  }
-
   return (
-    <div style={styles.overlay}>
-      <div style={styles.bgTerminal}><FaultyTerminal scale={1.5} gridMul={[2,1]} digitSize={1.2} timeScale={0.4} scanlineIntensity={0.6} glitchAmount={0.6} flickerAmount={0.7} noiseAmp={1} curvature={0.08} tint="#d97706" mouseReact mouseStrength={0.4} pageLoadAnimation brightness={0.45} /></div>
-      <div style={{ ...styles.card, ...(shake ? styles.shake : {}) }}>
-        <div style={styles.titleBar}>
-          <div style={styles.trafficLights}>
-            <div style={{ ...styles.dot, background: '#f87171' }} />
-            <div style={{ ...styles.dot, background: '#fbbf24' }} />
-            <div style={{ ...styles.dot, background: '#4ade80' }} />
+    <div className="fixed inset-0 bg-background bg-grid-tech overflow-hidden flex flex-col items-center justify-center p-4 font-sans">
+      <style>{`
+        @keyframes gtm-shake {
+          0%,100% { transform: translateX(0); }
+          15% { transform: translateX(-6px); }
+          30% { transform: translateX(6px); }
+          45% { transform: translateX(-5px); }
+          60% { transform: translateX(5px); }
+          75% { transform: translateX(-3px); }
+          90% { transform: translateX(3px); }
+        }
+        .gtm-shake { animation: gtm-shake 0.45s ease; }
+      `}</style>
+
+      <div className="pointer-events-none absolute inset-4 border border-border/40 hidden md:block" />
+      <div className="pointer-events-none absolute top-3 left-3 text-[10px] font-mono uppercase tracking-[0.15em] text-muted/60">
+        GOTHAM // SECURE TERMINAL
+      </div>
+      <div className="pointer-events-none absolute top-3 right-3 flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-[0.15em] text-success/70">
+        <Activity size={10} />
+        SYS:READY
+      </div>
+
+      <div
+        className={cn(
+          'relative w-full max-w-[400px] rounded-[4px] border border-border bg-surface',
+          'shadow-[0_0_0_1px_rgba(48,54,61,0.4),0_24px_60px_rgba(0,0,0,0.55)]',
+          shake && 'gtm-shake',
+        )}
+      >
+        <div className="h-9 border-b border-border bg-surface-2 flex items-center justify-between px-3 rounded-t-[4px]">
+          <div className="flex items-center gap-2">
+            <Lock size={11} className="text-info" />
+            <span className="text-[10px] font-mono uppercase tracking-[0.12em] text-muted">
+              SYS:AUTH
+            </span>
           </div>
-          <span style={styles.titleBarText}>login.cnae</span>
+          <span className="text-[10px] font-mono uppercase tracking-[0.12em] text-muted/70">
+            login.cnae
+          </span>
         </div>
-        <div style={styles.body}>
-          <div style={styles.logoRow}>
-            <div style={styles.logoIcon}>
-              <BarChart2 size={22} color="#d97706" strokeWidth={2} />
+
+        <div className="p-7">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="size-11 rounded-[4px] bg-info/15 border border-info/40 flex items-center justify-center flex-shrink-0">
+              <BarChart2 size={22} className="text-info" strokeWidth={2.2} />
             </div>
             <div>
-              <div style={styles.logoTitle}>Gotham Search</div>
-              <div style={styles.logoSub}>Sistema de Inteligencia Empresarial</div>
+              <div className="text-[18px] font-bold text-primary tracking-[0.02em] leading-tight">
+                GOTHAM
+              </div>
+              <div className="text-[10px] uppercase tracking-[0.18em] text-muted font-mono">
+                Sist. Inteligência Empresarial
+              </div>
             </div>
           </div>
-          <div style={styles.divider} />
-          <form onSubmit={handleSubmit} style={styles.form}>
-            <div style={styles.field}>
-              <label style={styles.label}>CPF</label>
-              <input type="text" inputMode="numeric" placeholder="000.000.000-00"
-                value={cpf} onChange={handleCpfChange} style={styles.input}
-                ref={cpfRef} autoComplete="username" />
+
+          <div className="h-px bg-border mb-5" />
+
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] uppercase tracking-[0.12em] text-muted font-semibold">
+                CPF
+              </label>
+              <input
+                ref={cpfRef}
+                type="text"
+                inputMode="numeric"
+                placeholder="000.000.000-00"
+                value={cpf}
+                onChange={handleCpfChange}
+                autoComplete="username"
+                className="block w-full rounded-[4px] bg-background border border-border focus:border-info focus:ring-1 focus:ring-info/40 outline-none px-3 h-10 text-[14px] text-primary placeholder:text-muted/60 font-mono tabular tracking-wider"
+              />
             </div>
-            <div style={styles.field}>
-              <label style={styles.label}>CÓDIGO DE ACESSO MASTER</label>
-              <div style={styles.inputWrap}>
-                <input ref={codigoRef} type={showCodigo ? 'text' : 'password'}
-                  inputMode="numeric" placeholder="••••••" value={codigo}
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] uppercase tracking-[0.12em] text-muted font-semibold">
+                Código de acesso master
+              </label>
+              <div className="relative">
+                <input
+                  ref={codigoRef}
+                  type={showCodigo ? 'text' : 'password'}
+                  inputMode="numeric"
+                  placeholder="••••••"
+                  value={codigo}
                   onChange={handleCodigoChange}
-                  style={{ ...styles.input, paddingRight: 40 }}
-                  autoComplete="current-password" />
-                <button type="button" onClick={() => setShowCodigo(v => !v)}
-                  style={styles.eyeBtn} tabIndex={-1}
-                  aria-label={showCodigo ? 'Ocultar' : 'Mostrar'}>
-                  {showCodigo ? <EyeOff size={14} color="#a89868" /> : <Eye size={14} color="#a89868" />}
+                  autoComplete="current-password"
+                  className="block w-full rounded-[4px] bg-background border border-border focus:border-info focus:ring-1 focus:ring-info/40 outline-none pl-3 pr-10 h-10 text-[14px] text-primary placeholder:text-muted/60 font-mono tracking-[0.3em]"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCodigo(v => !v)}
+                  tabIndex={-1}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted hover:text-primary transition-colors p-1"
+                  aria-label={showCodigo ? 'Ocultar' : 'Mostrar'}
+                >
+                  {showCodigo ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
               </div>
             </div>
-            {erro && <div style={styles.erro} role="alert">{erro}</div>}
-            <button type="submit" disabled={loading}
-              style={{ ...styles.btn, cursor: 'pointer' }}>
-              <LogIn size={15} color="#2c2416" />
-              Entrar
+
+            {erro && (
+              <div
+                role="alert"
+                className="rounded-[4px] border border-critical/40 bg-critical/10 px-3 py-2 text-[12px] text-critical font-mono"
+              >
+                ! {erro}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="mt-1 inline-flex items-center justify-center gap-2 h-10 rounded-[4px] bg-info text-background font-bold tracking-[0.05em] text-[13px] hover:bg-info/90 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+            >
+              {loading ? (
+                <>
+                  <span className="size-3.5 rounded-full border-2 border-background/40 border-t-background animate-gtm-spin" />
+                  AUTENTICANDO...
+                </>
+              ) : (
+                <>
+                  <LogIn size={14} />
+                  ACESSAR SISTEMA
+                </>
+              )}
             </button>
           </form>
         </div>
+
+        <footer className="px-7 py-3 border-t border-border flex items-center justify-between">
+          <span className="text-[9px] font-mono uppercase tracking-[0.15em] text-muted/70">
+            v1.0
+          </span>
+          <span className="text-[9px] font-mono uppercase tracking-[0.15em] text-muted/70">
+            data: cnae · brasilapi
+          </span>
+        </footer>
       </div>
-      <p style={styles.footer}>Gotham Search v1.0 — Dados: Lista CNAE + BrasilAPI</p>
+
+      <p className="mt-5 text-[10px] font-mono uppercase tracking-[0.18em] text-muted/50">
+        GOTHAM SEARCH — RESTRICTED ACCESS
+      </p>
     </div>
   )
-}
-
-const styles: Record<string, React.CSSProperties> = {
-  overlay: { position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#100d06', zIndex: 9999, padding: 16 },
-  bgTerminal: { position: 'absolute', inset: 0, pointerEvents: 'none' },
-  card: { position: 'relative', width: '100%', maxWidth: 380, background: 'rgba(245,241,232,0.93)', border: '1.5px solid #c8b888', borderRadius: 10, boxShadow: '0 8px 48px rgba(217,119,6,0.25), 0 2px 12px rgba(0,0,0,0.5)', overflow: 'hidden', transition: 'transform 0.1s', backdropFilter: 'blur(2px)' },
-  shake: { animation: 'shake 0.45s ease' },
-  titleBar: { display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: '#ede8da', borderBottom: '1px solid #c8b888' },
-  trafficLights: { display: 'flex', gap: 6 },
-  dot: { width: 12, height: 12, borderRadius: '50%', border: '1px solid rgba(0,0,0,0.08)' },
-  titleBarText: { fontSize: 12, color: '#7a6a4a', fontFamily: 'inherit', flex: 1, textAlign: 'center' },
-  body: { padding: '24px 28px 28px' },
-  logoRow: { display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 },
-  logoIcon: { width: 44, height: 44, borderRadius: 10, background: '#fef3c7', border: '1.5px solid #fbbf24', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  logoTitle: { fontSize: 16, fontWeight: 700, color: '#2c2416', letterSpacing: '0.05em', fontFamily: 'inherit' },
-  logoSub: { fontSize: 10, color: '#7a6a4a', fontFamily: 'inherit', marginTop: 2 },
-  divider: { height: 1, background: '#ddd0b0', marginBottom: 22 },
-  form: { display: 'flex', flexDirection: 'column', gap: 16 },
-  field: { display: 'flex', flexDirection: 'column', gap: 6 },
-  label: { fontSize: 10, fontWeight: 600, color: '#7a6a4a', letterSpacing: '0.1em', fontFamily: 'inherit' },
-  inputWrap: { position: 'relative' },
-  input: { width: '100%', padding: '10px 12px', background: '#faf8f2', border: '1.5px solid #c8b888', borderRadius: 6, fontSize: 14, color: '#2c2416', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' },
-  eyeBtn: { position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center' },
-  erro: { fontSize: 12, color: '#dc2626', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 6, padding: '8px 12px', fontFamily: 'inherit' },
-  btn: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px 20px', background: '#fbbf24', border: '1.5px solid #d97706', borderRadius: 6, fontSize: 13, fontWeight: 700, color: '#2c2416', fontFamily: 'inherit', marginTop: 4, width: '100%' },
-  spinner: { display: 'inline-block', width: 14, height: 14, border: '2px solid #2c241640', borderTopColor: '#2c2416', borderRadius: '50%', animation: 'spin 0.7s linear infinite' },
-  footer: { position: 'relative', marginTop: 20, fontSize: 10, color: '#a89868', fontFamily: 'inherit', letterSpacing: '0.05em' },
 }
